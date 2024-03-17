@@ -1,0 +1,3 @@
+[submodule "Starlight"]
+	path = Starlight
+	url = https://github.com/PaperMC/Starlight.git

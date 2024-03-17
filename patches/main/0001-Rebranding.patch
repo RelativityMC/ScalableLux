@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sun, 17 Mar 2024 10:11:48 +0800
+Subject: [PATCH] Rebranding
+
+
+diff --git a/build.gradle b/build.gradle
+index 598ff30..aaca99a 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -17,6 +17,7 @@ def getGitCommit = { ->
+     exec {
+         commandLine 'git', 'rev-parse', '--short', 'HEAD'
+         standardOutput = stdout
++        workingDir = ".."
+     }
+     return stdout.toString().trim()
+ }
+@@ -55,7 +56,7 @@ tasks.withType(JavaCompile) {
+ }
+ 
+ loom {
+-    accessWidenerPath = file("src/main/resources/starlight.accesswidener")
++    accessWidenerPath = file("src/main/resources/scalable-emission.accesswidener")
+ }
+ 
+ // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+diff --git a/gradle.properties b/gradle.properties
+index 8f69d83..eee5d54 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -9,4 +9,4 @@ loader_version=0.15.1
+ # Mod Properties
+ mod_version=1.1.3
+ maven_group=ca.spottedleaf.starlight
+-archives_base_name=starlight
++archives_base_name=ScalableEmission
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+index 61593c3..58cb411 100644
+--- a/src/main/resources/fabric.mod.json
++++ b/src/main/resources/fabric.mod.json
+@@ -1,8 +1,8 @@
+ {
+   "schemaVersion": 1,
+-  "id": "starlight",
++  "id": "scalable-emission",
+   "version": "${version}",
+-  "name": "Starlight",
++  "name": "ScalableEmission",
+   "description": "Rewrites the light engine to fix lighting performance and lighting errors",
+   "authors": [
+     "Spottedleaf"
+@@ -13,6 +13,9 @@
+     "discord": "https://discord.gg/tuinity",
+     "homepage": "https://www.curseforge.com/minecraft/mc-mods/starlight"
+   },
++  "provides": [
++    "starlight"
++  ],
+   "breaks": {
+     "phosphor" : "*"
+   },
+@@ -21,9 +24,9 @@
+   "environment": "*",
+   "entrypoints": {},
+   "mixins": [
+-    "starlight.mixins.json"
++    "scalable-emission.mixins.json"
+   ],
+-  "accessWidener" : "starlight.accesswidener",
++  "accessWidener" : "scalable-emission.accesswidener",
+   "depends": {
+     "fabricloader": ">=${loader_version}",
+     "minecraft": "${minecraft_version}"
+diff --git a/src/main/resources/starlight.accesswidener b/src/main/resources/scalable-emission.accesswidener
+similarity index 100%
+rename from src/main/resources/starlight.accesswidener
+rename to src/main/resources/scalable-emission.accesswidener
+diff --git a/src/main/resources/starlight.mixins.json b/src/main/resources/scalable-emission.mixins.json
+similarity index 100%
+rename from src/main/resources/starlight.mixins.json
+rename to src/main/resources/scalable-emission.mixins.json
