@@ -17,6 +17,7 @@ def getGitCommit = { ->
     exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'
         standardOutput = stdout
+        workingDir = ".."
     }
     return stdout.toString().trim()
 }
@@ -55,7 +56,7 @@ tasks.withType(JavaCompile) {
 }
 
 loom {
-    accessWidenerPath = file("src/main/resources/starlight.accesswidener")
+    accessWidenerPath = file("src/main/resources/scalablelux.accesswidener")
 }
 
 // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
