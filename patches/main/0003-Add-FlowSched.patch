@@ -5,7 +5,7 @@ Subject: [PATCH] Add FlowSched
 
 
 diff --git a/build.gradle b/build.gradle
-index ea3e8a6..ec3519a 100644
+index ffe886e..40117e7 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,6 +1,11 @@
@@ -56,13 +56,13 @@ index ea3e8a6..ec3519a 100644
  tasks.withType(AbstractArchiveTask) {
      preserveFileTimestamps = false
 diff --git a/settings.gradle b/settings.gradle
-index b02216b..f7ac7f3 100644
+index 51c65a1..72ebf6e 100644
 --- a/settings.gradle
 +++ b/settings.gradle
-@@ -8,3 +8,9 @@ pluginManagement {
-         gradlePluginPortal()
-     }
+@@ -10,3 +10,9 @@ pluginManagement {
  }
+ 
+ rootProject.name = "ScalableLux"
 +
 +includeBuild('../FlowSched') {
 +    dependencySubstitution {
