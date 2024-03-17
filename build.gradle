@@ -1,6 +1,11 @@
 plugins {
     id 'fabric-loom' version '1.7-SNAPSHOT'
     id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+configurations {
+    shadowInclude
 }
 
 loom.runs.all {
@@ -38,6 +43,11 @@ dependencies {
 
     // PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
     // You may need to force-disable transitiveness on them.
+
+    shadowInclude("com.ishland.flowsched:flowsched") {
+        transitive false
+    }
+    implementation("com.ishland.flowsched:flowsched")
 }
 
 processResources {
@@ -74,6 +84,22 @@ java {
 jar {
     from "LICENSE"
 }
+
+shadowJar {
+    archiveClassifier = "all-dev"
+    configurations = [ project.configurations.shadowInclude ]
+
+    relocate "com.ishland.flowsched", "ca.spottedleaf.starlight.interndep.flowsched"
+}
+
+remapJar {
+    input = shadowJar.archiveFile
+    archiveFileName = shadowJar.archiveFileName.get().replaceAll("-dev\\.jar\$", ".jar")
+    addNestedDependencies = true
+    dependsOn shadowJar
+}
+
+clean.dependsOn gradle.includedBuild('FlowSched').task(':clean')
 
 // make build reproducible
 tasks.withType(AbstractArchiveTask) {
