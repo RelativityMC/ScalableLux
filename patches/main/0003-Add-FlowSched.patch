@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sun, 17 Mar 2024 13:42:14 +0800
+Subject: [PATCH] Add FlowSched
+
+
+diff --git a/build.gradle b/build.gradle
+index ea3e8a6..ec3519a 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,6 +1,11 @@
+ plugins {
+     id 'fabric-loom' version '1.5-SNAPSHOT'
+     id 'maven-publish'
++    id 'com.github.johnrengelman.shadow' version '8.1.1'
++}
++
++configurations {
++    shadowInclude
+ }
+ 
+ loom.runs.all {
+@@ -38,6 +43,11 @@ dependencies {
+ 
+     // PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
+     // You may need to force-disable transitiveness on them.
++
++    shadowInclude("com.ishland.flowsched:flowsched") {
++        transitive false
++    }
++    implementation("com.ishland.flowsched:flowsched")
+ }
+ 
+ processResources {
+@@ -75,6 +85,22 @@ jar {
+     from "LICENSE"
+ }
+ 
++shadowJar {
++    archiveClassifier = "all-dev"
++    configurations = [ project.configurations.shadowInclude ]
++
++    relocate "com.ishland.flowsched", "ca.spottedleaf.starlight.interndep.flowsched"
++}
++
++remapJar {
++    input = shadowJar.archiveFile
++    archiveFileName = shadowJar.archiveFileName.get().replaceAll("-dev\\.jar\$", ".jar")
++    addNestedDependencies = true
++    dependsOn shadowJar
++}
++
++clean.dependsOn gradle.includedBuild('FlowSched').task(':clean')
++
+ // make build reproducible
+ tasks.withType(AbstractArchiveTask) {
+     preserveFileTimestamps = false
+diff --git a/settings.gradle b/settings.gradle
+index b02216b..f7ac7f3 100644
+--- a/settings.gradle
++++ b/settings.gradle
+@@ -8,3 +8,9 @@ pluginManagement {
+         gradlePluginPortal()
+     }
+ }
++
++includeBuild('../FlowSched') {
++    dependencySubstitution {
++        substitute module('com.ishland.flowsched:flowsched') using project(':')
++    }
++}

@@ -1,3 +1,6 @@
 [submodule "Starlight"]
 	path = Starlight
 	url = https://github.com/PaperMC/Starlight.git
+[submodule "FlowSched"]
+	path = FlowSched
+	url = https://github.com/RelativityMC/FlowSched.git
