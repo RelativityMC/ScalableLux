@@ -3,11 +3,13 @@ package ca.spottedleaf.starlight.mixin.common.lightengine;
 import ca.spottedleaf.starlight.common.light.StarLightEngine;
 import ca.spottedleaf.starlight.common.light.StarLightInterface;
 import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
+import ca.spottedleaf.starlight.common.thread.GlobalExecutors;
 import ca.spottedleaf.starlight.common.util.CoordinateUtils;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
-import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ThreadedLevelLightEngine;
@@ -25,7 +27,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 @Mixin(ThreadedLevelLightEngine.class)
@@ -224,5 +229,36 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
                 LOGGER.error("Failed to light chunk " + chunkPos, throwable);
             }
         });
+    }
+
+    @Unique
+    private final AtomicLong scalablelux$lastLightUpdate = new AtomicLong(0);
+
+    @WrapOperation(method = "tryScheduleUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;hasLightWork()Z"))
+    private boolean scheduleOnlyWhenDirty(ThreadedLevelLightEngine instance, Operation<Boolean> original) {
+        if (!GlobalExecutors.ENABLED) {
+            return original.call(instance);
+        }
+        final boolean queueDirty = ((StarLightLightingProvider) instance).getLightEngine().isQueueDirty();
+        if (queueDirty) {
+            return original.call(instance);
+        }
+        final long lastUpdate = this.scalablelux$lastLightUpdate.get();
+        final long currentTime = System.nanoTime();
+        if (currentTime - lastUpdate >= 10_000_000L) { // 10ms
+            if (this.scalablelux$lastLightUpdate.compareAndSet(lastUpdate, currentTime)) {
+                return original.call(instance);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @author ishland
+     * @reason implement waitForPendingTasks hook
+     */
+    @Overwrite
+    public CompletableFuture<?> waitForPendingTasks(int x, int z) {
+        return this.getLightEngine().syncFuture(x, z);
     }
 }
