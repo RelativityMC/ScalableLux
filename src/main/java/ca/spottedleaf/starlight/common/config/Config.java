@@ -1,5 +1,6 @@
 package ca.spottedleaf.starlight.common.config;
 
+import ca.spottedleaf.starlight.common.thread.SchedulingUtil;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Properties;
 
 public class Config {
+    public static final int PARALLELISM;
 
     static {
         final Properties properties = new Properties();
@@ -24,6 +26,15 @@ public class Config {
             }
         }
 
+        if (!SchedulingUtil.isExternallyManaged()) {
+            int parallelism = getInt(properties, newProperties, "parallelism", -1);
+            if (parallelism < 1) {
+                parallelism = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
+            }
+            PARALLELISM = parallelism;
+        } else {
+            PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
+        }
 
         if (!newProperties.isEmpty()) {
             try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
