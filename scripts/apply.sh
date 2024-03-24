@@ -79,7 +79,7 @@ function enableCommitSigningIfNeeded {
 }
 
 (
-    (applyPatch Starlight Starlight-Patched HEAD main "$SERVER_REPO") || exit 1
+    (applyPatch Starlight Starlight-Patched HEAD main) || exit 1
     enableCommitSigningIfNeeded
 ) || (
     echo "Failed to apply patches"

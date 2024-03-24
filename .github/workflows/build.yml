@@ -9,6 +9,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
       - name: setup jdk 17
         uses: actions/setup-java@v4
         with:
@@ -16,6 +17,8 @@ jobs:
           distribution: 'microsoft'
       - name: setup project
         run: |
+          git config --global user.email "no-reply@github.com"
+          git config --global user.name "Github Actions"
           ./build.sh up
           ./build.sh patch
       - name: build

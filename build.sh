@@ -26,14 +26,14 @@ case "$1" in
   (
     set -e
     cd "$basedir"
-    scripts/apply.sh "$basedir"
+    scripts/apply.sh "$basedir" || exit 1
   )
   ;;
 "b" | "bu" | "build")
   (
     basedir
     cd Starlight-Patched
-    ./gradlew clean build
+    ./gradlew clean build || exit 1
   )
   ;;
 
@@ -41,7 +41,7 @@ case "$1" in
   (
     set -e
     cd "$basedir"
-    scripts/rebuildpatches.sh "$basedir"
+    scripts/rebuildpatches.sh "$basedir" || exit 1
   )
   ;;
 "am" | "amend")
@@ -50,13 +50,13 @@ case "$1" in
     git add .
     git commit --amend --no-edit
     cd "$basedir"
-    scripts/rebuildpatches.sh "$basedir"
+    scripts/rebuildpatches.sh "$basedir" || exit 1
   )
   ;;
 "up" | "upstream")
   (
     cd "$basedir"
-    scripts/upstream.sh "$2"
+    scripts/upstream.sh "$2" || exit 1
   )
   ;;
 *)
