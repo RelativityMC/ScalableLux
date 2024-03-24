@@ -20,12 +20,12 @@ index 0000000..3d65275
 +    }
 +}
 diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
-index 2a53ff8..a781911 100644
+index 2a13e6a..10967bb 100644
 --- a/src/main/resources/fabric.mod.json
 +++ b/src/main/resources/fabric.mod.json
-@@ -22,7 +22,11 @@
+@@ -20,7 +20,11 @@
+   },
    "license": "LGPL-3.0-only",
-   "icon": "assets/starlight/icon.png",
    "environment": "*",
 -  "entrypoints": {},
 +  "entrypoints": {
