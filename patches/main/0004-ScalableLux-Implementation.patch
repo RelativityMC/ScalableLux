@@ -1,0 +1,243 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sun, 24 Mar 2024 00:37:09 +0800
+Subject: [PATCH] ScalableLux Implementation
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+index 4d5e911..3889bc5 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+@@ -1,16 +1,23 @@
+ package ca.spottedleaf.starlight.common.light;
+ 
+ import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
++import ca.spottedleaf.starlight.common.thread.SchedulingUtil;
+ import ca.spottedleaf.starlight.common.util.CoordinateUtils;
+ import ca.spottedleaf.starlight.common.util.WorldUtil;
+ import ca.spottedleaf.starlight.common.world.ExtendedWorld;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
++import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
++import it.unimi.dsi.fastutil.longs.Long2ReferenceMaps;
++import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
++import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
+ import it.unimi.dsi.fastutil.shorts.ShortCollection;
+ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
+ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ThreadedLevelLightEngine;
+ import net.minecraft.server.level.TicketType;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+@@ -25,6 +32,7 @@ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.function.Consumer;
+ import java.util.function.IntConsumer;
+ 
+@@ -526,12 +534,78 @@ public final class StarLightInterface {
+             return;
+         }
+ 
++        if (this.lightEngine instanceof ThreadedLevelLightEngine threadedLevelLightEngine) {
++            this.schedulePropagation0(threadedLevelLightEngine);
++            return;
++        }
++
+         final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
+         final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
+ 
+         try {
+             LightQueue.ChunkTasks task;
+             while ((task = this.lightQueue.removeFirstTask()) != null) {
++                handleUpdateInternal(task, skyEngine, blockEngine);
++            }
++        } finally {
++            this.releaseSkyLightEngine(skyEngine);
++            this.releaseBlockLightEngine(blockEngine);
++        }
++    }
++
++    private static final AtomicInteger INSTANCE_COUNTER = new AtomicInteger(0);
++    private static final CompletableFuture<Void> COMPLETED_FUTURE = CompletableFuture.completedFuture(null);
++    private final int instanceId = INSTANCE_COUNTER.getAndIncrement();
++    private final Long2ReferenceMap<CompletableFuture<Void>> chunkFutures = Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>());
++
++    private void schedulePropagation0(ThreadedLevelLightEngine threadedLevelLightEngine) {
++        synchronized (this.lightQueue) {
++            LightQueue.ChunkTasks task;
++            final ObjectBidirectionalIterator<Long2ObjectMap.Entry<LightQueue.ChunkTasks>> iterator = this.lightQueue.chunkTasks.long2ObjectEntrySet().fastIterator();
++            while (iterator.hasNext()) {
++                final Long2ObjectMap.Entry<LightQueue.ChunkTasks> entry = iterator.next();
++                final long pos = entry.getLongKey();
++                if (!this.chunkFutures.getOrDefault(pos, COMPLETED_FUTURE).isDone()) {
++                    continue;
++                }
++                CompletableFuture<Void> future = new CompletableFuture<>();
++                SchedulingUtil.scheduleTask(
++                        this.instanceId,
++                        () -> {
++                            try {
++                                final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
++                                final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
++
++                                LightQueue.ChunkTasks tasks;
++                                synchronized (this.lightQueue) {
++                                    tasks = this.lightQueue.chunkTasks.remove(pos);
++                                }
++                                if (tasks != null) {
++                                    try {
++                                        handleUpdateInternal(tasks, skyEngine, blockEngine);
++                                    } finally {
++                                        this.releaseSkyLightEngine(skyEngine);
++                                        this.releaseBlockLightEngine(blockEngine);
++                                    }
++
++                                    threadedLevelLightEngine.tryScheduleUpdate();
++                                }
++                                future.complete(null);
++                            } catch (Throwable t) {
++                                future.completeExceptionally(t);
++                                t.printStackTrace();
++                            }
++                        },
++                        CoordinateUtils.getChunkX(pos),
++                        CoordinateUtils.getChunkZ(pos),
++                        2
++                );
++                chunkFutures.put(pos, future);
++            }
++        }
++    }
++
++    private void handleUpdateInternal(LightQueue.ChunkTasks task, SkyStarLightEngine skyEngine, BlockStarLightEngine blockEngine) { // keep indentation
+                 if (task.lightTasks != null) {
+                     for (final Runnable run : task.lightTasks) {
+                         run.run();
+@@ -560,11 +634,6 @@ public final class StarLightInterface {
+                 }
+ 
+                 task.onComplete.complete(null);
+-            }
+-        } finally {
+-            this.releaseSkyLightEngine(skyEngine);
+-            this.releaseBlockLightEngine(blockEngine);
+-        }
+     }
+ 
+     public static final class LightQueue {
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java b/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java
+new file mode 100644
+index 0000000..661959a
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java
+@@ -0,0 +1,16 @@
++package ca.spottedleaf.starlight.common.thread;
++
++import com.ishland.flowsched.executor.ExecutorManager;
++
++import java.util.concurrent.atomic.AtomicInteger;
++
++public class GlobalExecutors {
++
++    private static final int LIGHTING_PARALLELISM = Integer.getInteger("scalablelux.lightingParallelism", Math.max(1, Runtime.getRuntime().availableProcessors() / 3));
++    private static final AtomicInteger prioritizedSchedulerCounter = new AtomicInteger(0);
++    public static final ExecutorManager prioritizedScheduler = new ExecutorManager(GlobalExecutors.LIGHTING_PARALLELISM, thread -> {
++        thread.setDaemon(true);
++        thread.setName("scalablelux-%d".formatted(prioritizedSchedulerCounter.getAndIncrement()));
++    });
++
++}
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/LockTokenImpl.java b/src/main/java/ca/spottedleaf/starlight/common/thread/LockTokenImpl.java
+new file mode 100644
+index 0000000..a48b45f
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/common/thread/LockTokenImpl.java
+@@ -0,0 +1,6 @@
++package ca.spottedleaf.starlight.common.thread;
++
++import com.ishland.flowsched.executor.LockToken;
++
++public record LockTokenImpl(int ownerTag, long pos) implements LockToken {
++}
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/SchedulingUtil.java b/src/main/java/ca/spottedleaf/starlight/common/thread/SchedulingUtil.java
+new file mode 100644
+index 0000000..6be2613
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/common/thread/SchedulingUtil.java
+@@ -0,0 +1,21 @@
++package ca.spottedleaf.starlight.common.thread;
++
++import ca.spottedleaf.starlight.common.util.CoordinateUtils;
++import com.ishland.flowsched.executor.LockToken;
++
++import java.util.ArrayList;
++
++public class SchedulingUtil {
++
++    public static void scheduleTask(int ownerTag, Runnable task, int x, int z, int radius) {
++        final ArrayList<LockToken> lockTokens = new ArrayList<>((radius * 2 + 1) * (radius * 2 + 1));
++        for (int i = -radius; i <= radius; i++) {
++            for (int j = -radius; j <= radius; j++) {
++                lockTokens.add(new LockTokenImpl(ownerTag, CoordinateUtils.getChunkKey(x + i, z + j)));
++            }
++        }
++        final SimpleTask simpleTask = new SimpleTask(task, lockTokens.toArray(LockToken[]::new), 240);
++        GlobalExecutors.prioritizedScheduler.schedule(simpleTask);
++    }
++
++}
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/SimpleTask.java b/src/main/java/ca/spottedleaf/starlight/common/thread/SimpleTask.java
+new file mode 100644
+index 0000000..90f1d2d
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/common/thread/SimpleTask.java
+@@ -0,0 +1,43 @@
++package ca.spottedleaf.starlight.common.thread;
++
++import com.ishland.flowsched.executor.LockToken;
++import com.ishland.flowsched.executor.Task;
++
++import java.util.Objects;
++
++public class SimpleTask implements Task {
++
++    private final Runnable task;
++    private final LockToken[] lockTokens;
++    private final int priority;
++
++    public SimpleTask(Runnable task, LockToken[] lockTokens, int priority) {
++        this.task = Objects.requireNonNull(task, "task");
++        this.lockTokens = Objects.requireNonNull(lockTokens, "lockTokens");
++        this.priority = priority;
++    }
++
++    @Override
++    public void run(Runnable releaseLocks) {
++        try {
++            this.task.run();
++        } finally {
++            releaseLocks.run();
++        }
++    }
++
++    @Override
++    public void propagateException(Throwable t) {
++        t.printStackTrace();
++    }
++
++    @Override
++    public LockToken[] lockTokens() {
++        return this.lockTokens;
++    }
++
++    @Override
++    public int priority() {
++        return this.priority;
++    }
++}

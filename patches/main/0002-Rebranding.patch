@@ -46,7 +46,7 @@ index b02216b..51c65a1 100644
 +
 +rootProject.name = "ScalableLux"
 diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
-index 61593c3..fed304f 100644
+index 61593c3..2a53ff8 100644
 --- a/src/main/resources/fabric.mod.json
 +++ b/src/main/resources/fabric.mod.json
 @@ -1,8 +1,8 @@
@@ -70,7 +70,7 @@ index 61593c3..fed304f 100644
    "breaks": {
      "phosphor" : "*"
    },
-@@ -21,9 +24,9 @@
+@@ -21,11 +24,11 @@
    "environment": "*",
    "entrypoints": {},
    "mixins": [
@@ -81,7 +81,10 @@ index 61593c3..fed304f 100644
 +  "accessWidener" : "scalablelux.accesswidener",
    "depends": {
      "fabricloader": ">=${loader_version}",
-     "minecraft": "${minecraft_version}"
+-    "minecraft": "${minecraft_version}"
++    "minecraft": ">=${minecraft_version}"
+   }
+ }
 diff --git a/src/main/resources/starlight.accesswidener b/src/main/resources/scalablelux.accesswidener
 similarity index 100%
 rename from src/main/resources/starlight.accesswidener
