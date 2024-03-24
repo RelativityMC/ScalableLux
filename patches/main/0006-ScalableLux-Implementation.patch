@@ -4,6 +4,41 @@ Date: Sun, 24 Mar 2024 00:37:09 +0800
 Subject: [PATCH] ScalableLux Implementation
 
 
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
+index 1f9762c..bca4093 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
+@@ -1,5 +1,6 @@
+ package ca.spottedleaf.starlight.common.config;
+ 
++import ca.spottedleaf.starlight.common.thread.SchedulingUtil;
+ import net.fabricmc.loader.api.FabricLoader;
+ 
+ import java.io.IOException;
+@@ -11,6 +12,7 @@ import java.nio.file.StandardOpenOption;
+ import java.util.Properties;
+ 
+ public class Config {
++    public static final int PARALLELISM;
+ 
+     static {
+         final Properties properties = new Properties();
+@@ -24,6 +26,15 @@ public class Config {
+             }
+         }
+ 
++        if (!SchedulingUtil.isExternallyManaged()) {
++            int parallelism = getInt(properties, newProperties, "parallelism", -1);
++            if (parallelism < 1) {
++                parallelism = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
++            }
++            PARALLELISM = parallelism;
++        } else {
++            PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
++        }
+ 
+         if (!newProperties.isEmpty()) {
+             try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 index 4d5e911..3889bc5 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
@@ -133,21 +168,21 @@ index 4d5e911..3889bc5 100644
      public static final class LightQueue {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java b/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java
 new file mode 100644
-index 0000000..661959a
+index 0000000..ebdeecd
 --- /dev/null
 +++ b/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java
 @@ -0,0 +1,16 @@
 +package ca.spottedleaf.starlight.common.thread;
 +
++import ca.spottedleaf.starlight.common.config.Config;
 +import com.ishland.flowsched.executor.ExecutorManager;
 +
 +import java.util.concurrent.atomic.AtomicInteger;
 +
 +public class GlobalExecutors {
 +
-+    private static final int LIGHTING_PARALLELISM = Integer.getInteger("scalablelux.lightingParallelism", Math.max(1, Runtime.getRuntime().availableProcessors() / 3));
 +    private static final AtomicInteger prioritizedSchedulerCounter = new AtomicInteger(0);
-+    public static final ExecutorManager prioritizedScheduler = new ExecutorManager(GlobalExecutors.LIGHTING_PARALLELISM, thread -> {
++    public static final ExecutorManager prioritizedScheduler = new ExecutorManager(Config.PARALLELISM, thread -> {
 +        thread.setDaemon(true);
 +        thread.setName("scalablelux-%d".formatted(prioritizedSchedulerCounter.getAndIncrement()));
 +    });
@@ -167,10 +202,10 @@ index 0000000..a48b45f
 +}
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/SchedulingUtil.java b/src/main/java/ca/spottedleaf/starlight/common/thread/SchedulingUtil.java
 new file mode 100644
-index 0000000..6be2613
+index 0000000..c9b3c58
 --- /dev/null
 +++ b/src/main/java/ca/spottedleaf/starlight/common/thread/SchedulingUtil.java
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,25 @@
 +package ca.spottedleaf.starlight.common.thread;
 +
 +import ca.spottedleaf.starlight.common.util.CoordinateUtils;
@@ -189,6 +224,10 @@ index 0000000..6be2613
 +        }
 +        final SimpleTask simpleTask = new SimpleTask(task, lockTokens.toArray(LockToken[]::new), 240);
 +        GlobalExecutors.prioritizedScheduler.schedule(simpleTask);
++    }
++
++    public static boolean isExternallyManaged() {
++        return false;
 +    }
 +
 +}

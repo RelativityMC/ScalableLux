@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sun, 24 Mar 2024 14:14:48 +0800
+Subject: [PATCH] Entrypoints
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java b/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java
+new file mode 100644
+index 0000000..3d65275
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java
+@@ -0,0 +1,9 @@
++package ca.spottedleaf.starlight.common;
++
++import net.fabricmc.api.ModInitializer;
++
++public class ScalableLuxEntrypoint implements ModInitializer {
++    @Override
++    public void onInitialize() {
++    }
++}
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+index 2a53ff8..a781911 100644
+--- a/src/main/resources/fabric.mod.json
++++ b/src/main/resources/fabric.mod.json
+@@ -22,7 +22,11 @@
+   "license": "LGPL-3.0-only",
+   "icon": "assets/starlight/icon.png",
+   "environment": "*",
+-  "entrypoints": {},
++  "entrypoints": {
++    "main": [
++      "ca.spottedleaf.starlight.common.ScalableLuxEntrypoint"
++    ]
++  },
+   "mixins": [
+     "scalablelux.mixins.json"
+   ],
