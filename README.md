@@ -2,6 +2,8 @@
 A Fabric mod based on Starlight that improves the performance of light updates in Minecraft.
 This is done by taking advantage of multiple CPU cores in parallel.
 
+Note: This is currently a work in progress and is not quite ready for use.
+
 ## Why does this fork exist?
 - Starlight is no longer maintained as a mod [since Mar 8, 2024](https://github.com/PaperMC/Starlight/commit/cca03d62da48e876ac79196bad16864e8a96bbeb).
 - The performance of vanilla lighting engine is still a bottleneck for high-performance chunk generation.
