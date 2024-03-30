@@ -40,7 +40,7 @@ index 1f9762c..bca4093 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
-index 4d5e911..3889bc5 100644
+index 4d5e911..d1d1b81 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 @@ -1,16 +1,23 @@
@@ -75,7 +75,7 @@ index 4d5e911..3889bc5 100644
  import java.util.function.Consumer;
  import java.util.function.IntConsumer;
  
-@@ -526,12 +534,78 @@ public final class StarLightInterface {
+@@ -526,12 +534,86 @@ public final class StarLightInterface {
              return;
          }
  
@@ -147,14 +147,22 @@ index 4d5e911..3889bc5 100644
 +                );
 +                chunkFutures.put(pos, future);
 +            }
++            this.lightQueue.queueDirty = false;
 +        }
++    }
++
++    /**
++     * Only relevant on server lighting
++     */
++    public boolean isQueueDirty() {
++        return this.lightQueue.queueDirty;
 +    }
 +
 +    private void handleUpdateInternal(LightQueue.ChunkTasks task, SkyStarLightEngine skyEngine, BlockStarLightEngine blockEngine) { // keep indentation
                  if (task.lightTasks != null) {
                      for (final Runnable run : task.lightTasks) {
                          run.run();
-@@ -560,11 +634,6 @@ public final class StarLightInterface {
+@@ -560,17 +642,13 @@ public final class StarLightInterface {
                  }
  
                  task.onComplete.complete(null);
@@ -166,6 +174,61 @@ index 4d5e911..3889bc5 100644
      }
  
      public static final class LightQueue {
+ 
+         protected final Long2ObjectLinkedOpenHashMap<ChunkTasks> chunkTasks = new Long2ObjectLinkedOpenHashMap<>();
+         protected final StarLightInterface manager;
++        protected volatile boolean queueDirty = false;
+ 
+         public LightQueue(final StarLightInterface manager) {
+             this.manager = manager;
+@@ -583,6 +661,7 @@ public final class StarLightInterface {
+         public synchronized LightQueue.ChunkTasks queueBlockChange(final BlockPos pos) {
+             final ChunkTasks tasks = this.chunkTasks.computeIfAbsent(CoordinateUtils.getChunkKey(pos), ChunkTasks::new);
+             tasks.changedPositions.add(pos.immutable());
++            this.queueDirty = true;
+             return tasks;
+         }
+ 
+@@ -594,6 +673,7 @@ public final class StarLightInterface {
+             }
+             tasks.changedSectionSet[pos.getY() - this.manager.minSection] = Boolean.valueOf(newEmptyValue);
+ 
++            this.queueDirty = true;
+             return tasks;
+         }
+ 
+@@ -604,6 +684,7 @@ public final class StarLightInterface {
+             }
+             tasks.lightTasks.add(lightTask);
+ 
++            this.queueDirty = true;
+             return tasks;
+         }
+ 
+@@ -616,6 +697,7 @@ public final class StarLightInterface {
+             }
+             queuedEdges.addAll(sections);
+ 
++            this.queueDirty = true;
+             return tasks;
+         }
+ 
+@@ -628,6 +710,7 @@ public final class StarLightInterface {
+             }
+             queuedEdges.addAll(sections);
+ 
++            this.queueDirty = true;
+             return tasks;
+         }
+ 
+@@ -639,6 +722,7 @@ public final class StarLightInterface {
+             if (tasks != null) {
+                 tasks.onComplete.complete(null);
+             }
++            this.queueDirty = true;
+         }
+ 
+         public synchronized ChunkTasks removeFirstTask() {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java b/src/main/java/ca/spottedleaf/starlight/common/thread/GlobalExecutors.java
 new file mode 100644
 index 0000000..ebdeecd
@@ -280,3 +343,39 @@ index 0000000..90f1d2d
 +        return this.priority;
 +    }
 +}
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
+index d44b28f..e370a84 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
+@@ -4,10 +4,11 @@ import ca.spottedleaf.starlight.common.light.StarLightEngine;
+ import ca.spottedleaf.starlight.common.light.StarLightInterface;
+ import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
+ import ca.spottedleaf.starlight.common.util.CoordinateUtils;
++import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
++import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
+-import net.minecraft.server.level.ChunkHolder;
+ import net.minecraft.server.level.ChunkMap;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ThreadedLevelLightEngine;
+@@ -25,6 +26,8 @@ import org.spongepowered.asm.mixin.Mixin;
+ import org.spongepowered.asm.mixin.Overwrite;
+ import org.spongepowered.asm.mixin.Shadow;
+ import org.spongepowered.asm.mixin.Unique;
++import org.spongepowered.asm.mixin.injection.At;
++
+ import java.util.concurrent.CompletableFuture;
+ import java.util.function.Supplier;
+ 
+@@ -225,4 +228,9 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
+             }
+         });
+     }
++
++    @WrapOperation(method = "tryScheduleUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;hasLightWork()Z"))
++    private boolean scheduleOnlyWhenDirty(ThreadedLevelLightEngine instance, Operation<Boolean> original) {
++        return ((StarLightLightingProvider) instance).getLightEngine().isQueueDirty() && original.call(instance);
++    }
+ }
