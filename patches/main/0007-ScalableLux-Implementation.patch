@@ -40,7 +40,7 @@ index 1f9762c..bca4093 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
-index 4d5e911..3b3b776 100644
+index 4343484..0b0ac4c 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 @@ -1,16 +1,23 @@
@@ -343,7 +343,7 @@ index 0000000..90f1d2d
 +    }
 +}
 diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
-index d44b28f..2ae3d6a 100644
+index 867af20..3a7273a 100644
 --- a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
 +++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
 @@ -4,10 +4,11 @@ import ca.spottedleaf.starlight.common.light.StarLightEngine;

@@ -1,0 +1,291 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Fri, 14 Jun 2024 20:03:50 +0800
+Subject: [PATCH] Port to 1.21
+
+
+diff --git a/build.gradle b/build.gradle
+index ffe886e..55035ec 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,5 +1,5 @@
+ plugins {
+-    id 'fabric-loom' version '1.5-SNAPSHOT'
++    id 'fabric-loom' version '1.6-SNAPSHOT'
+     id 'maven-publish'
+ }
+ 
+diff --git a/gradle.properties b/gradle.properties
+index 85f5b31..5d644e1 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -3,9 +3,9 @@ org.gradle.jvmargs=-Xmx2G
+ org.gradle.daemon=false
+ # Fabric Properties
+ # check these on https://modmuss50.me/fabric.html
+-minecraft_version=1.20.4
+-yarn_mappings=1.20.4+build.1
+-loader_version=0.15.1
++minecraft_version=1.21
++yarn_mappings=1.21+build.1
++loader_version=0.15.11
+ # Mod Properties
+ mod_version=1.1.3
+ maven_group=ca.spottedleaf.starlight
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+index 88d86f1..197700e 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+@@ -6,7 +6,7 @@ import net.minecraft.core.BlockPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.ImposterProtoChunk;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.chunk.LevelChunkSection;
+@@ -48,7 +48,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+ 
+     @Override
+     protected boolean canUseChunk(final ChunkAccess chunk) {
+-        return chunk.getStatus().isOrAfter(ChunkStatus.LIGHT) && (this.isClientSide || chunk.isLightCorrect());
++        return chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && (this.isClientSide || chunk.isLightCorrect());
+     }
+ 
+     @Override
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
+index f717ba3..1d71091 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
+@@ -11,7 +11,7 @@ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.LevelChunkSection;
+ import net.minecraft.world.level.chunk.LightChunkGetter;
+ import net.minecraft.world.phys.shapes.Shapes;
+@@ -229,7 +229,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+     @Override
+     protected boolean canUseChunk(final ChunkAccess chunk) {
+         // can only use chunks for sky stuff if their sections have been init'd
+-        return chunk.getStatus().isOrAfter(ChunkStatus.LIGHT) && (this.isClientSide || chunk.isLightCorrect());
++        return chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && (this.isClientSide || chunk.isLightCorrect());
+     }
+ 
+     @Override
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+index 4d5e911..4343484 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+@@ -15,7 +15,7 @@ import net.minecraft.server.level.TicketType;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.DataLayer;
+ import net.minecraft.world.level.chunk.LightChunkGetter;
+ import net.minecraft.world.level.lighting.LayerLightEventListener;
+@@ -107,7 +107,7 @@ public final class StarLightInterface {
+             @Override
+             public DataLayer getDataLayerData(final SectionPos pos) {
+                 final ChunkAccess chunk = StarLightInterface.this.getAnyChunkNow(pos.getX(), pos.getZ());
+-                if (chunk == null || (!StarLightInterface.this.isClientSide && !chunk.isLightCorrect()) || !chunk.getStatus().isOrAfter(ChunkStatus.LIGHT)) {
++                if (chunk == null || (!StarLightInterface.this.isClientSide && !chunk.isLightCorrect()) || !chunk.getHighestGeneratedStatus().isOrAfter(ChunkStatus.LIGHT)) {
+                     return null;
+                 }
+ 
+@@ -205,7 +205,7 @@ public final class StarLightInterface {
+         final int minLightSection = this.minLightSection;
+         final int maxLightSection = this.maxLightSection;
+ 
+-        if (chunk == null || (!this.isClientSide && !chunk.isLightCorrect()) || !chunk.getStatus().isOrAfter(ChunkStatus.LIGHT)) {
++        if (chunk == null || (!this.isClientSide && !chunk.isLightCorrect()) || !chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT)) {
+             return 15;
+         }
+ 
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+index 368f061..74c41b2 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import org.slf4j.Logger;
+ 
+ public final class SaveUtil {
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
+index a9af7c0..64c8a1f 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
+@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+ import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.LightLayer;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.DataLayer;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.lighting.LevelLightEngine;
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
+index 29a48e4..eddfc49 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
+@@ -3,6 +3,7 @@ package ca.spottedleaf.starlight.mixin.common.blockstate;
+ import ca.spottedleaf.starlight.common.blockstate.ExtendedAbstractBlockState;
+ import com.google.common.collect.ImmutableMap;
+ import com.mojang.serialization.MapCodec;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -36,8 +37,8 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+     @Unique
+     private boolean isConditionallyFullOpaque;
+ 
+-    protected BlockStateBaseMixin(final Block object, final ImmutableMap<Property<?>, Comparable<?>> immutableMap, final MapCodec<BlockState> mapCodec) {
+-        super(object, immutableMap, mapCodec);
++    protected BlockStateBaseMixin(Block object, Reference2ObjectArrayMap<Property<?>, Comparable<?>> reference2ObjectArrayMap, MapCodec<BlockState> mapCodec) {
++        super(object, reference2ObjectArrayMap, mapCodec);
+     }
+ 
+     /**
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
+index d44b28f..867af20 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
+@@ -14,7 +14,7 @@ import net.minecraft.server.level.ThreadedLevelLightEngine;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.LightLayer;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.DataLayer;
+ import net.minecraft.world.level.chunk.LightChunkGetter;
+ import net.minecraft.world.level.lighting.LevelLightEngine;
+@@ -55,13 +55,13 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
+         final ServerLevel world = (ServerLevel)this.getLightEngine().getWorld();
+ 
+         final ChunkAccess center = this.getLightEngine().getAnyChunkNow(chunkX, chunkZ);
+-        if (center == null || !center.getStatus().isOrAfter(ChunkStatus.LIGHT)) {
++        if (center == null || !center.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT)) {
+             // do not accept updates in unlit chunks, unless we might be generating a chunk. thanks to the amazing
+             // chunk scheduling, we could be lighting and generating a chunk at the same time
+             return;
+         }
+ 
+-        if (center.getStatus() != ChunkStatus.FULL) {
++        if (center.getPersistedStatus() != ChunkStatus.FULL) { // TODO check if getHighestGeneratedStatus() is a better idea
+             // do not keep chunk loaded, we are probably in a gen thread
+             // if we proceed to add a ticket the chunk will be loaded, which is not what we want (avoid cascading gen)
+             runnable.get();
+@@ -214,7 +214,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
+                 this.getLightEngine().checkChunkEdges(chunkPos.x, chunkPos.z);
+             }
+ 
+-            this.chunkMap.releaseLightTicket(chunkPos);
++//            this.chunkMap.releaseLightTicket(chunkPos); // vanilla 1.21 no longer does this
+             return chunk;
+         }, (runnable) -> {
+             this.getLightEngine().scheduleChunkLight(chunkPos, runnable);
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java
+index 0649e9c..8c71409 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java
+@@ -8,6 +8,7 @@ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ProtoChunk;
+ import net.minecraft.world.level.chunk.storage.ChunkSerializer;
++import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+ import org.spongepowered.asm.mixin.Mixin;
+ import org.spongepowered.asm.mixin.injection.At;
+ import org.spongepowered.asm.mixin.injection.Inject;
+@@ -36,7 +37,7 @@ public abstract class ChunkSerializerMixin {
+             method = "read",
+             at = @At("RETURN")
+     )
+-    private static void loadLightHook(final ServerLevel serverLevel, final PoiManager poiManager, final ChunkPos chunkPos,
++    private static void loadLightHook(final ServerLevel serverLevel, final PoiManager poiManager, final RegionStorageInfo regionStorageInfo, final ChunkPos chunkPos,
+                                       final CompoundTag compoundTag, final CallbackInfoReturnable<ProtoChunk> cir) {
+         SaveUtil.loadLightHook(serverLevel, chunkPos, compoundTag, cir.getReturnValue());
+     }
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/LevelMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/LevelMixin.java
+index f57d233..b07ae29 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/LevelMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/LevelMixin.java
+@@ -4,7 +4,7 @@ import ca.spottedleaf.starlight.common.world.ExtendedWorld;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import org.spongepowered.asm.mixin.Mixin;
+ 
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ServerWorldMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ServerWorldMixin.java
+index 9abbdd8..34fe3af 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ServerWorldMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ServerWorldMixin.java
+@@ -2,19 +2,18 @@ package ca.spottedleaf.starlight.mixin.common.world;
+ 
+ import ca.spottedleaf.starlight.common.util.CoordinateUtils;
+ import ca.spottedleaf.starlight.common.world.ExtendedWorld;
+-import com.mojang.datafixers.util.Either;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.RegistryAccess;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.level.ChunkHolder;
+ import net.minecraft.server.level.ChunkMap;
++import net.minecraft.server.level.ChunkResult;
+ import net.minecraft.server.level.ServerChunkCache;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.profiling.ProfilerFiller;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.WorldGenLevel;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ChunkStatus;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.dimension.DimensionType;
+ import net.minecraft.world.level.storage.WritableLevelData;
+@@ -43,9 +42,9 @@ public abstract class ServerWorldMixin extends Level implements WorldGenLevel, E
+             return null;
+         }
+ 
+-        final Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure> either = holder.getFutureIfPresentUnchecked(ChunkStatus.FULL).getNow(null);
++        final ChunkResult<LevelChunk> result = holder.getFullChunkFuture().getNow(null);
+ 
+-        return either == null ? null : (LevelChunk)either.left().orElse(null);
++        return result == null ? null : result.orElse(null);
+     }
+ 
+     @Override
+@@ -53,6 +52,6 @@ public abstract class ServerWorldMixin extends Level implements WorldGenLevel, E
+         final ChunkMap storage = this.chunkSource.chunkMap;
+         final ChunkHolder holder = storage.getVisibleChunkIfPresent(CoordinateUtils.getChunkKey(chunkX, chunkZ));
+ 
+-        return holder == null ? null : holder.getLastAvailable();
++        return holder == null ? null : holder.getLatestChunk();
+     }
+ }
+diff --git a/src/main/resources/scalablelux.accesswidener b/src/main/resources/scalablelux.accesswidener
+index 75e700f..3b4c469 100644
+--- a/src/main/resources/scalablelux.accesswidener
++++ b/src/main/resources/scalablelux.accesswidener
+@@ -20,11 +20,6 @@ accessible field net/minecraft/server/level/ChunkMap mainThreadExecutor Lnet/min
+ accessible method net/minecraft/server/level/ChunkMap getUpdatingChunkIfPresent (J)Lnet/minecraft/server/level/ChunkHolder;
+ accessible method net/minecraft/server/level/ChunkMap getVisibleChunkIfPresent (J)Lnet/minecraft/server/level/ChunkHolder;
+ accessible method net/minecraft/server/level/ChunkMap getChunkQueueLevel (J)Ljava/util/function/IntSupplier;
+-accessible method net/minecraft/server/level/ChunkMap releaseLightTicket (Lnet/minecraft/world/level/ChunkPos;)V
+-
+-
+-# ChunkHolder
+-accessible field net/minecraft/server/level/ChunkHolder chunkToSave Ljava/util/concurrent/CompletableFuture;
+ 
+ # LevelLightEngine
+ mutable field net/minecraft/world/level/lighting/LevelLightEngine blockEngine Lnet/minecraft/world/level/lighting/LightEngine;

@@ -5,12 +5,12 @@ Subject: [PATCH] Add FlowSched
 
 
 diff --git a/build.gradle b/build.gradle
-index ffe886e..40117e7 100644
+index 55035ec..0d77fd5 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,6 +1,11 @@
  plugins {
-     id 'fabric-loom' version '1.5-SNAPSHOT'
+     id 'fabric-loom' version '1.6-SNAPSHOT'
      id 'maven-publish'
 +    id 'com.github.johnrengelman.shadow' version '8.1.1'
 +}
