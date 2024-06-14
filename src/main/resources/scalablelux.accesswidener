@@ -20,11 +20,6 @@ accessible field net/minecraft/server/level/ChunkMap mainThreadExecutor Lnet/min
 accessible method net/minecraft/server/level/ChunkMap getUpdatingChunkIfPresent (J)Lnet/minecraft/server/level/ChunkHolder;
 accessible method net/minecraft/server/level/ChunkMap getVisibleChunkIfPresent (J)Lnet/minecraft/server/level/ChunkHolder;
 accessible method net/minecraft/server/level/ChunkMap getChunkQueueLevel (J)Ljava/util/function/IntSupplier;
-accessible method net/minecraft/server/level/ChunkMap releaseLightTicket (Lnet/minecraft/world/level/ChunkPos;)V
-
-
-# ChunkHolder
-accessible field net/minecraft/server/level/ChunkHolder chunkToSave Ljava/util/concurrent/CompletableFuture;
 
 # LevelLightEngine
 mutable field net/minecraft/world/level/lighting/LevelLightEngine blockEngine Lnet/minecraft/world/level/lighting/LightEngine;
