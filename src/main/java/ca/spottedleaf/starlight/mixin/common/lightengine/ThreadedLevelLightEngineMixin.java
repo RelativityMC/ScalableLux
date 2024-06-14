@@ -14,7 +14,7 @@ import net.minecraft.server.level.ThreadedLevelLightEngine;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.lighting.LevelLightEngine;
@@ -55,13 +55,13 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         final ServerLevel world = (ServerLevel)this.getLightEngine().getWorld();
 
         final ChunkAccess center = this.getLightEngine().getAnyChunkNow(chunkX, chunkZ);
-        if (center == null || !center.getStatus().isOrAfter(ChunkStatus.LIGHT)) {
+        if (center == null || !center.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT)) {
             // do not accept updates in unlit chunks, unless we might be generating a chunk. thanks to the amazing
             // chunk scheduling, we could be lighting and generating a chunk at the same time
             return;
         }
 
-        if (center.getStatus() != ChunkStatus.FULL) {
+        if (center.getPersistedStatus() != ChunkStatus.FULL) { // TODO check if getHighestGeneratedStatus() is a better idea
             // do not keep chunk loaded, we are probably in a gen thread
             // if we proceed to add a ticket the chunk will be loaded, which is not what we want (avoid cascading gen)
             runnable.get();
@@ -214,7 +214,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
                 this.getLightEngine().checkChunkEdges(chunkPos.x, chunkPos.z);
             }
 
-            this.chunkMap.releaseLightTicket(chunkPos);
+//            this.chunkMap.releaseLightTicket(chunkPos); // vanilla 1.21 no longer does this
             return chunk;
         }, (runnable) -> {
             this.getLightEngine().scheduleChunkLight(chunkPos, runnable);
