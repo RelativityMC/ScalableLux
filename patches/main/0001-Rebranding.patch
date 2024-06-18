@@ -5,7 +5,7 @@ Subject: [PATCH] Rebranding
 
 
 diff --git a/build.gradle b/build.gradle
-index c9cf5f5..ffe886e 100644
+index 598ff30..6416e16 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -17,6 +17,7 @@ def getGitCommit = { ->
