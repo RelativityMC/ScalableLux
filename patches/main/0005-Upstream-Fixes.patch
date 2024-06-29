@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sat, 29 Jun 2024 20:31:21 +0800
+Subject: [PATCH] Upstream Fixes
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+index fdb55a9..ab0d39a 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+@@ -1021,7 +1021,7 @@ public abstract class StarLightEngine {
+             this.setNibbles(chunk, nibbles);
+ 
+             for (int y = this.minLightSection; y <= this.maxLightSection; ++y) {
+-                lightAccess.onLightUpdate(this.skylightPropagator ? LightLayer.SKY : LightLayer.BLOCK, SectionPos.of(chunkX, y, chunkX));
++                lightAccess.onLightUpdate(this.skylightPropagator ? LightLayer.SKY : LightLayer.BLOCK, SectionPos.of(chunkX, y, chunkZ));
+             }
+ 
+             // now do callback
