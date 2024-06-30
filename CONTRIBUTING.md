@@ -15,7 +15,7 @@ These directories aren't git repositories in the traditional sense:
     - If it says something like `212 commits ahead, 207 commits behind`, then type `git fetch` to update 
 
 ## Adding Patches
-Adding patches to  is very simple:
+Adding patches is very simple:
 
 1. Make changes
 2. `cd` into the directory you want to add a patch to
