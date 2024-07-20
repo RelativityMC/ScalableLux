@@ -4,8 +4,11 @@ A Fabric mod based on Starlight that improves the performance of light updates i
 ## Why does this fork exist?
 - Starlight is no longer maintained as a mod [since Mar 8, 2024](https://github.com/PaperMC/Starlight/commit/cca03d62da48e876ac79196bad16864e8a96bbeb).
 - The performance of vanilla lighting engine is still a bottleneck for high-performance chunk generation.
-- Starlight's "stateless" design allows for parallel light updates.
-  This is critical for allowing the chunk system to scale beyond 25 worker threads.
+- The base Starlight is still [100% faster than vanilla](<https://gist.github.com/Spottedleaf/6cc1acdd03a9b7ac34699bf5e8f1b85c#light-engine-performance-changes-in-120-from-vanilla>),
+  allowing the chunk system to scale beyond 24 threads.
+- Starlight's "stateless" design allows for parallel light updates, further widening the performance gap.
+  It is still [rather important for dedicated servers with more players to stress chunk generation](https://gist.github.com/Spottedleaf/6cc1acdd03a9b7ac34699bf5e8f1b85c#is-starlight-obsolete).
+  Therefore, it is still important for Fabric or other modded servers with plenty of players. 
 
 ## What does this fork do?
 - Contains all the performance improvements from Starlight with additional bug fixes.
