@@ -5,7 +5,7 @@ Subject: [PATCH] Set Version
 
 
 diff --git a/gradle.properties b/gradle.properties
-index 5d644e1..cffc305 100644
+index 5d644e1..d989b6c 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -7,6 +7,6 @@ minecraft_version=1.21
@@ -13,6 +13,6 @@ index 5d644e1..cffc305 100644
  loader_version=0.15.11
  # Mod Properties
 -mod_version=1.1.3
-+mod_version=0.1.0+beta.1
++mod_version=0.1.0+rc.1
  maven_group=ca.spottedleaf.starlight
  archives_base_name=ScalableLux
