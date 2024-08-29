@@ -186,23 +186,22 @@ index 1d71091..e91dc71 100644
              above = current;
  
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
-index fdb55a9..5348f9c 100644
+index fdb55a9..ca3ec4e 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
-@@ -22,10 +22,8 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
+@@ -22,9 +22,11 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  import net.minecraft.world.level.chunk.LightChunkGetter;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
--import java.util.ArrayList;
--import java.util.Arrays;
--import java.util.List;
--import java.util.Set;
 +
-+import java.util.*;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.List;
++import java.util.Objects;
+ import java.util.Set;
  import java.util.function.Consumer;
  import java.util.function.IntConsumer;
- 
-@@ -66,7 +64,8 @@ public abstract class StarLightEngine {
+@@ -66,7 +68,8 @@ public abstract class StarLightEngine {
              this.x = x;
              this.y = y;
              this.z = z;
@@ -212,7 +211,7 @@ index fdb55a9..5348f9c 100644
              this.everythingButThisDirection = (long)(ALL_DIRECTIONS_BITSET ^ (1 << this.ordinal()));
              // positive is always even, negative is always odd. Flip the 1 bit to get the negative direction.
              this.everythingButTheOppositeDirection = (long)(ALL_DIRECTIONS_BITSET ^ (1 << (this.ordinal() ^ 1)));
-@@ -386,6 +385,20 @@ public abstract class StarLightEngine {
+@@ -386,6 +389,20 @@ public abstract class StarLightEngine {
          this.emptinessMapCache[chunkX + 5*chunkZ + this.chunkIndexOffset] = emptinessMap;
      }
  
@@ -233,7 +232,7 @@ index fdb55a9..5348f9c 100644
      public static SWMRNibbleArray[] getFilledEmptyLight(final LevelHeightAccessor world) {
          return getFilledEmptyLight(WorldUtil.getTotalLightSections(world));
      }
-@@ -1150,30 +1163,30 @@ public abstract class StarLightEngine {
+@@ -1150,30 +1167,30 @@ public abstract class StarLightEngine {
                      if (blockState == null) {
                          continue;
                      }
@@ -285,7 +284,7 @@ index fdb55a9..5348f9c 100644
  
                              if (Shapes.faceShapeOccludes(Shapes.empty(), cullingFace)) {
                                  continue;
-@@ -1181,7 +1194,7 @@ public abstract class StarLightEngine {
+@@ -1181,7 +1198,7 @@ public abstract class StarLightEngine {
                              flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
                          }
  
@@ -294,7 +293,7 @@ index fdb55a9..5348f9c 100644
                          final int targetLevel = propagatedLightLevel - Math.max(1, opacity);
                          if (targetLevel <= currentLevel) {
                              continue;
-@@ -1201,7 +1214,7 @@ public abstract class StarLightEngine {
+@@ -1201,7 +1218,7 @@ public abstract class StarLightEngine {
                                              | (flags);
                          }
                          continue;
@@ -303,7 +302,7 @@ index fdb55a9..5348f9c 100644
                  }
              } else {
                  // we actually need to worry about our state here
-@@ -1212,7 +1225,7 @@ public abstract class StarLightEngine {
+@@ -1212,7 +1229,7 @@ public abstract class StarLightEngine {
                      final int offY = posY + propagate.y;
                      final int offZ = posZ + propagate.z;
  
@@ -312,7 +311,7 @@ index fdb55a9..5348f9c 100644
  
                      if (fromShape != Shapes.empty() && Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
                          continue;
-@@ -1232,30 +1245,30 @@ public abstract class StarLightEngine {
+@@ -1232,30 +1249,30 @@ public abstract class StarLightEngine {
                      if (blockState == null) {
                          continue;
                      }
@@ -364,7 +363,7 @@ index fdb55a9..5348f9c 100644
  
                              if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {
                                  continue;
-@@ -1263,7 +1276,7 @@ public abstract class StarLightEngine {
+@@ -1263,7 +1280,7 @@ public abstract class StarLightEngine {
                              flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
                          }
  
@@ -373,7 +372,7 @@ index fdb55a9..5348f9c 100644
                          final int targetLevel = propagatedLightLevel - Math.max(1, opacity);
                          if (targetLevel <= currentLevel) {
                              continue;
-@@ -1283,7 +1296,7 @@ public abstract class StarLightEngine {
+@@ -1283,7 +1300,7 @@ public abstract class StarLightEngine {
                                              | (flags);
                          }
                          continue;
@@ -382,7 +381,7 @@ index fdb55a9..5348f9c 100644
                  }
              }
          }
-@@ -1335,54 +1348,54 @@ public abstract class StarLightEngine {
+@@ -1335,54 +1352,54 @@ public abstract class StarLightEngine {
                      if (blockState == null) {
                          continue;
                      }
@@ -482,7 +481,7 @@ index fdb55a9..5348f9c 100644
  
                              if (Shapes.faceShapeOccludes(Shapes.empty(), cullingFace)) {
                                  continue;
-@@ -1390,7 +1403,7 @@ public abstract class StarLightEngine {
+@@ -1390,7 +1407,7 @@ public abstract class StarLightEngine {
                              flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
                          }
  
@@ -491,7 +490,7 @@ index fdb55a9..5348f9c 100644
                          final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacity));
                          if (lightLevel > targetLevel) {
                              // it looks like another source propagated here, so re-propagate it
-@@ -1432,7 +1445,7 @@ public abstract class StarLightEngine {
+@@ -1432,7 +1449,7 @@ public abstract class StarLightEngine {
                                              | flags;
                          }
                          continue;
@@ -500,7 +499,7 @@ index fdb55a9..5348f9c 100644
                  }
              } else {
                  // we actually need to worry about our state here
-@@ -1446,7 +1459,7 @@ public abstract class StarLightEngine {
+@@ -1446,7 +1463,7 @@ public abstract class StarLightEngine {
                      final int sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
                      final int localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
  
@@ -509,7 +508,7 @@ index fdb55a9..5348f9c 100644
  
                      if (fromShape != Shapes.empty() && Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
                          continue;
-@@ -1464,54 +1477,54 @@ public abstract class StarLightEngine {
+@@ -1464,54 +1481,54 @@ public abstract class StarLightEngine {
                      if (blockState == null) {
                          continue;
                      }
@@ -609,7 +608,7 @@ index fdb55a9..5348f9c 100644
  
                              if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {
                                  continue;
-@@ -1519,7 +1532,7 @@ public abstract class StarLightEngine {
+@@ -1519,7 +1536,7 @@ public abstract class StarLightEngine {
                              flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
                          }
  
@@ -618,7 +617,7 @@ index fdb55a9..5348f9c 100644
                          final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacity));
                          if (lightLevel > targetLevel) {
                              // it looks like another source propagated here, so re-propagate it
-@@ -1561,7 +1574,7 @@ public abstract class StarLightEngine {
+@@ -1561,7 +1578,7 @@ public abstract class StarLightEngine {
                                              | flags;
                          }
                          continue;
