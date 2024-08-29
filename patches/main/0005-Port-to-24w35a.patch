@@ -1,0 +1,1202 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Thu, 29 Aug 2024 23:37:55 +0800
+Subject: [PATCH] Port to 24w35a
+
+
+diff --git a/gradle.properties b/gradle.properties
+index 5d644e1..9045b20 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -3,9 +3,8 @@ org.gradle.jvmargs=-Xmx2G
+ org.gradle.daemon=false
+ # Fabric Properties
+ # check these on https://modmuss50.me/fabric.html
+-minecraft_version=1.21
+-yarn_mappings=1.21+build.1
+-loader_version=0.15.11
++minecraft_version=24w35a
++loader_version=0.16.2
+ # Mod Properties
+ mod_version=1.1.3
+ maven_group=ca.spottedleaf.starlight
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java b/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java
+index a681b52..8594799 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java
+@@ -4,6 +4,4 @@ public interface ExtendedAbstractBlockState {
+ 
+     public boolean isConditionallyFullOpaque();
+ 
+-    public int getOpacityIfCached();
+-
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+index 197700e..a2d4826 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+@@ -137,22 +137,15 @@ public final class BlockStarLightEngine extends StarLightEngine {
+ 
+         final int sectionOffset = this.chunkSectionIndexOffset;
+         final BlockState conditionallyOpaqueState;
+-        int opacity = ((ExtendedAbstractBlockState)centerState).getOpacityIfCached();
+-
+-        if (opacity == -1) {
+-            this.recalcCenterPos.set(worldX, worldY, worldZ);
+-            opacity = centerState.getLightBlock(lightAccess.getLevel(), this.recalcCenterPos);
+-            if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
+-                conditionallyOpaqueState = centerState;
+-            } else {
+-                conditionallyOpaqueState = null;
+-            }
+-        } else if (opacity >= 15) {
+-            return level;
++        int opacity = Math.max(1, centerState.getLightBlock());
++        if (opacity >= 15) {
++            return level; // TODO in older starlight, opacity >= 15 can go into the loop below, but it probably shouldn't
++        }
++        if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
++            conditionallyOpaqueState = centerState;
+         } else {
+             conditionallyOpaqueState = null;
+         }
+-        opacity = Math.max(1, opacity);
+ 
+         for (final AxisDirection direction : AXIS_DIRECTIONS) {
+             final int offX = worldX + direction.x;
+@@ -174,8 +167,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
+                 // we don't read the blockstate because most of the time this is false, so using the faster
+                 // known transparency lookup results in a net win
+                 this.recalcNeighbourPos.set(offX, offY, offZ);
+-                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcNeighbourPos, direction.opposite.nms);
+-                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcCenterPos, direction.nms);
++                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape(direction.opposite.nms);
++                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(direction.nms);
+                 if (Shapes.faceShapeOccludes(thisFace, neighbourFace)) {
+                     // not allowed to propagate
+                     continue;
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
+index 1d71091..e91dc71 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
+@@ -302,20 +302,14 @@ public final class SkyStarLightEngine extends StarLightEngine {
+ 
+         final int sectionOffset = this.chunkSectionIndexOffset;
+         final BlockState centerState = this.getBlockState(worldX, worldY, worldZ);
+-        int opacity = ((ExtendedAbstractBlockState)centerState).getOpacityIfCached();
+ 
+         final BlockState conditionallyOpaqueState;
+-        if (opacity < 0) {
+-            this.recalcCenterPos.set(worldX, worldY, worldZ);
+-            opacity = Math.max(1, centerState.getLightBlock(lightAccess.getLevel(), this.recalcCenterPos));
+-            if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
+-                conditionallyOpaqueState = centerState;
+-            } else {
+-                conditionallyOpaqueState = null;
+-            }
++        this.recalcCenterPos.set(worldX, worldY, worldZ);
++        int opacity = Math.max(1, centerState.getLightBlock());
++        if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
++            conditionallyOpaqueState = centerState;
+         } else {
+             conditionallyOpaqueState = null;
+-            opacity = Math.max(1, opacity);
+         }
+ 
+         int level = 0;
+@@ -341,8 +335,8 @@ public final class SkyStarLightEngine extends StarLightEngine {
+                 // we don't read the blockstate because most of the time this is false, so using the faster
+                 // known transparency lookup results in a net win
+                 this.recalcNeighbourPos.set(offX, offY, offZ);
+-                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcNeighbourPos, direction.opposite.nms);
+-                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcCenterPos, direction.nms);
++                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape( direction.opposite.nms);
++                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(direction.nms);
+                 if (Shapes.faceShapeOccludes(thisFace, neighbourFace)) {
+                     // not allowed to propagate
+                     continue;
+@@ -633,7 +627,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+             final VoxelShape fromShape;
+             if (((ExtendedAbstractBlockState)above).isConditionallyFullOpaque()) {
+                 this.mutablePos2.set(worldX, startY + 1, worldZ);
+-                fromShape = above.getFaceOcclusionShape(world, this.mutablePos2, AxisDirection.NEGATIVE_Y.nms);
++                fromShape = above.getFaceOcclusionShape(AxisDirection.NEGATIVE_Y.nms);
+                 if (Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
+                     // above wont let us propagate
+                     break;
+@@ -642,26 +636,26 @@ public final class SkyStarLightEngine extends StarLightEngine {
+                 fromShape = Shapes.empty();
+             }
+ 
+-            final int opacityIfCached = ((ExtendedAbstractBlockState)current).getOpacityIfCached();
++//            final int opacityIfCached = ((ExtendedAbstractBlockState)current).getOpacityIfCached();
+             // does light propagate from the top down?
+-            if (opacityIfCached != -1) {
+-                if (opacityIfCached != 0) {
+-                    // we cannot propagate 15 through this
+-                    break;
+-                }
+-                // most of the time it falls here.
+-                // add to propagate
+-                // light set delayed until we determine if this nibble section is null
+-                this.appendToIncreaseQueue(
+-                        ((worldX + (worldZ << 6) + (startY << (6 + 6)) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                | (15L << (6 + 6 + 16)) // we know we're at full lit here
+-                                | (propagateDirection << (6 + 6 + 16 + 4))
+-                );
+-            } else {
++//            if (opacityIfCached != -1) {
++//                if (opacityIfCached != 0) {
++//                    // we cannot propagate 15 through this
++//                    break;
++//                }
++//                // most of the time it falls here.
++//                // add to propagate
++//                // light set delayed until we determine if this nibble section is null
++//                this.appendToIncreaseQueue(
++//                        ((worldX + (worldZ << 6) + (startY << (6 + 6)) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                | (15L << (6 + 6 + 16)) // we know we're at full lit here
++//                                | (propagateDirection << (6 + 6 + 16 + 4))
++//                );
++//            } else {
+                 mutablePos.set(worldX, startY, worldZ);
+                 long flags = 0L;
+                 if (((ExtendedAbstractBlockState)current).isConditionallyFullOpaque()) {
+-                    final VoxelShape cullingFace = current.getFaceOcclusionShape(world, mutablePos, AxisDirection.POSITIVE_Y.nms);
++                    final VoxelShape cullingFace = current.getFaceOcclusionShape(AxisDirection.POSITIVE_Y.nms);
+ 
+                     if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {
+                         // can't propagate here, we're done on this column.
+@@ -670,7 +664,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+                     flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                 }
+ 
+-                final int opacity = current.getLightBlock(world, mutablePos);
++                final int opacity = current.getLightBlock();
+                 if (opacity > 0) {
+                     // let the queued value (if any) handle it from here.
+                     break;
+@@ -683,7 +677,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+                                 | (propagateDirection << (6 + 6 + 16 + 4))
+                                 | flags
+                 );
+-            }
++//            }
+ 
+             above = current;
+ 
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+index fdb55a9..5348f9c 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+@@ -22,10 +22,8 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
+ import net.minecraft.world.level.chunk.LightChunkGetter;
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+-import java.util.ArrayList;
+-import java.util.Arrays;
+-import java.util.List;
+-import java.util.Set;
++
++import java.util.*;
+ import java.util.function.Consumer;
+ import java.util.function.IntConsumer;
+ 
+@@ -66,7 +64,8 @@ public abstract class StarLightEngine {
+             this.x = x;
+             this.y = y;
+             this.z = z;
+-            this.nms = Direction.fromDelta(x, y, z);
++            this.nms = Direction.getNearest(x, y, z, null);
++            Objects.requireNonNull(this.nms);
+             this.everythingButThisDirection = (long)(ALL_DIRECTIONS_BITSET ^ (1 << this.ordinal()));
+             // positive is always even, negative is always odd. Flip the 1 bit to get the negative direction.
+             this.everythingButTheOppositeDirection = (long)(ALL_DIRECTIONS_BITSET ^ (1 << (this.ordinal() ^ 1)));
+@@ -386,6 +385,20 @@ public abstract class StarLightEngine {
+         this.emptinessMapCache[chunkX + 5*chunkZ + this.chunkIndexOffset] = emptinessMap;
+     }
+ 
++    public static SWMRNibbleArray.SaveState[] getFilledEmptySaveState(final LevelHeightAccessor world) {
++        return getFilledEmptySaveState(WorldUtil.getTotalLightSections(world));
++    }
++
++    private static SWMRNibbleArray.SaveState[] getFilledEmptySaveState(final int totalLightSections) {
++        final SWMRNibbleArray.SaveState[] ret = new SWMRNibbleArray.SaveState[totalLightSections];
++
++        for (int i = 0, len = ret.length; i < len; ++i) {
++            ret[i] = new SWMRNibbleArray.SaveState(null, SWMRNibbleArray.INIT_STATE_NULL);
++        }
++
++        return ret;
++    }
++
+     public static SWMRNibbleArray[] getFilledEmptyLight(final LevelHeightAccessor world) {
+         return getFilledEmptyLight(WorldUtil.getTotalLightSections(world));
+     }
+@@ -1150,30 +1163,30 @@ public abstract class StarLightEngine {
+                     if (blockState == null) {
+                         continue;
+                     }
+-                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
+-                    if (opacityCached != -1) {
+-                        final int targetLevel = propagatedLightLevel - Math.max(1, opacityCached);
+-                        if (targetLevel > currentLevel) {
+-                            currentNibble.set(localIndex, targetLevel);
+-                            this.postLightUpdate(offX, offY, offZ);
+-
+-                            if (targetLevel > 1) {
+-                                if (queueLength >= queue.length) {
+-                                    queue = this.resizeIncreaseQueue();
+-                                }
+-                                queue[queueLength++] =
+-                                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                                | ((targetLevel & 0xFL) << (6 + 6 + 16))
+-                                                | (propagate.everythingButTheOppositeDirection << (6 + 6 + 16 + 4));
+-                                continue;
+-                            }
+-                        }
+-                        continue;
+-                    } else {
++//                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
++//                    if (opacityCached != -1) {
++//                        final int targetLevel = propagatedLightLevel - Math.max(1, opacityCached);
++//                        if (targetLevel > currentLevel) {
++//                            currentNibble.set(localIndex, targetLevel);
++//                            this.postLightUpdate(offX, offY, offZ);
++//
++//                            if (targetLevel > 1) {
++//                                if (queueLength >= queue.length) {
++//                                    queue = this.resizeIncreaseQueue();
++//                                }
++//                                queue[queueLength++] =
++//                                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                                | ((targetLevel & 0xFL) << (6 + 6 + 16))
++//                                                | (propagate.everythingButTheOppositeDirection << (6 + 6 + 16 + 4));
++//                                continue;
++//                            }
++//                        }
++//                        continue;
++//                    } else {
+                         this.mutablePos1.set(offX, offY, offZ);
+                         long flags = 0;
+                         if (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque()) {
+-                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(world, this.mutablePos1, propagate.getOpposite().nms);
++                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(propagate.getOpposite().nms);
+ 
+                             if (Shapes.faceShapeOccludes(Shapes.empty(), cullingFace)) {
+                                 continue;
+@@ -1181,7 +1194,7 @@ public abstract class StarLightEngine {
+                             flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                         }
+ 
+-                        final int opacity = blockState.getLightBlock(world, this.mutablePos1);
++                        final int opacity = blockState.getLightBlock();
+                         final int targetLevel = propagatedLightLevel - Math.max(1, opacity);
+                         if (targetLevel <= currentLevel) {
+                             continue;
+@@ -1201,7 +1214,7 @@ public abstract class StarLightEngine {
+                                             | (flags);
+                         }
+                         continue;
+-                    }
++//                    }
+                 }
+             } else {
+                 // we actually need to worry about our state here
+@@ -1212,7 +1225,7 @@ public abstract class StarLightEngine {
+                     final int offY = posY + propagate.y;
+                     final int offZ = posZ + propagate.z;
+ 
+-                    final VoxelShape fromShape = (((ExtendedAbstractBlockState)fromBlock).isConditionallyFullOpaque()) ? fromBlock.getFaceOcclusionShape(world, this.mutablePos2, propagate.nms) : Shapes.empty();
++                    final VoxelShape fromShape = (((ExtendedAbstractBlockState)fromBlock).isConditionallyFullOpaque()) ? fromBlock.getFaceOcclusionShape(propagate.nms) : Shapes.empty();
+ 
+                     if (fromShape != Shapes.empty() && Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
+                         continue;
+@@ -1232,30 +1245,30 @@ public abstract class StarLightEngine {
+                     if (blockState == null) {
+                         continue;
+                     }
+-                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
+-                    if (opacityCached != -1) {
+-                        final int targetLevel = propagatedLightLevel - Math.max(1, opacityCached);
+-                        if (targetLevel > currentLevel) {
+-                            currentNibble.set(localIndex, targetLevel);
+-                            this.postLightUpdate(offX, offY, offZ);
+-
+-                            if (targetLevel > 1) {
+-                                if (queueLength >= queue.length) {
+-                                    queue = this.resizeIncreaseQueue();
+-                                }
+-                                queue[queueLength++] =
+-                                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                                | ((targetLevel & 0xFL) << (6 + 6 + 16))
+-                                                | (propagate.everythingButTheOppositeDirection << (6 + 6 + 16 + 4));
+-                                continue;
+-                            }
+-                        }
+-                        continue;
+-                    } else {
++//                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
++//                    if (opacityCached != -1) {
++//                        final int targetLevel = propagatedLightLevel - Math.max(1, opacityCached);
++//                        if (targetLevel > currentLevel) {
++//                            currentNibble.set(localIndex, targetLevel);
++//                            this.postLightUpdate(offX, offY, offZ);
++//
++//                            if (targetLevel > 1) {
++//                                if (queueLength >= queue.length) {
++//                                    queue = this.resizeIncreaseQueue();
++//                                }
++//                                queue[queueLength++] =
++//                                        ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                                | ((targetLevel & 0xFL) << (6 + 6 + 16))
++//                                                | (propagate.everythingButTheOppositeDirection << (6 + 6 + 16 + 4));
++//                                continue;
++//                            }
++//                        }
++//                        continue;
++//                    } else {
+                         this.mutablePos1.set(offX, offY, offZ);
+                         long flags = 0;
+                         if (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque()) {
+-                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(world, this.mutablePos1, propagate.getOpposite().nms);
++                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(propagate.getOpposite().nms);
+ 
+                             if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {
+                                 continue;
+@@ -1263,7 +1276,7 @@ public abstract class StarLightEngine {
+                             flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                         }
+ 
+-                        final int opacity = blockState.getLightBlock(world, this.mutablePos1);
++                        final int opacity = blockState.getLightBlock();
+                         final int targetLevel = propagatedLightLevel - Math.max(1, opacity);
+                         if (targetLevel <= currentLevel) {
+                             continue;
+@@ -1283,7 +1296,7 @@ public abstract class StarLightEngine {
+                                             | (flags);
+                         }
+                         continue;
+-                    }
++//                    }
+                 }
+             }
+         }
+@@ -1335,54 +1348,54 @@ public abstract class StarLightEngine {
+                     if (blockState == null) {
+                         continue;
+                     }
+-                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
+-                    if (opacityCached != -1) {
+-                        final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacityCached));
+-                        if (lightLevel > targetLevel) {
+-                            // it looks like another source propagated here, so re-propagate it
+-                            if (increaseQueueLength >= increaseQueue.length) {
+-                                increaseQueue = this.resizeIncreaseQueue();
+-                            }
+-                            increaseQueue[increaseQueueLength++] =
+-                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                            | ((lightLevel & 0xFL) << (6 + 6 + 16))
+-                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
+-                                            | FLAG_RECHECK_LEVEL;
+-                            continue;
+-                        }
+-                        final int emittedLight = blockState.getLightEmission() & emittedMask;
+-                        if (emittedLight != 0) {
+-                            // re-propagate source
+-                            // note: do not set recheck level, or else the propagation will fail
+-                            if (increaseQueueLength >= increaseQueue.length) {
+-                                increaseQueue = this.resizeIncreaseQueue();
+-                            }
+-                            increaseQueue[increaseQueueLength++] =
+-                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                            | ((emittedLight & 0xFL) << (6 + 6 + 16))
+-                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
+-                                            | (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque() ? (FLAG_WRITE_LEVEL | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) : FLAG_WRITE_LEVEL);
+-                        }
+-
+-                        currentNibble.set(localIndex, 0);
+-                        this.postLightUpdate(offX, offY, offZ);
+-
+-                        if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
+-                            if (queueLength >= queue.length) {
+-                                queue = this.resizeDecreaseQueue();
+-                            }
+-                            queue[queueLength++] =
+-                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                            | ((targetLevel & 0xFL) << (6 + 6 + 16))
+-                                            | ((propagate.everythingButTheOppositeDirection) << (6 + 6 + 16 + 4));
+-                            continue;
+-                        }
+-                        continue;
+-                    } else {
++//                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
++//                    if (opacityCached != -1) {
++//                        final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacityCached));
++//                        if (lightLevel > targetLevel) {
++//                            // it looks like another source propagated here, so re-propagate it
++//                            if (increaseQueueLength >= increaseQueue.length) {
++//                                increaseQueue = this.resizeIncreaseQueue();
++//                            }
++//                            increaseQueue[increaseQueueLength++] =
++//                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                            | ((lightLevel & 0xFL) << (6 + 6 + 16))
++//                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
++//                                            | FLAG_RECHECK_LEVEL;
++//                            continue;
++//                        }
++//                        final int emittedLight = blockState.getLightEmission() & emittedMask;
++//                        if (emittedLight != 0) {
++//                            // re-propagate source
++//                            // note: do not set recheck level, or else the propagation will fail
++//                            if (increaseQueueLength >= increaseQueue.length) {
++//                                increaseQueue = this.resizeIncreaseQueue();
++//                            }
++//                            increaseQueue[increaseQueueLength++] =
++//                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                            | ((emittedLight & 0xFL) << (6 + 6 + 16))
++//                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
++//                                            | (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque() ? (FLAG_WRITE_LEVEL | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) : FLAG_WRITE_LEVEL);
++//                        }
++//
++//                        currentNibble.set(localIndex, 0);
++//                        this.postLightUpdate(offX, offY, offZ);
++//
++//                        if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
++//                            if (queueLength >= queue.length) {
++//                                queue = this.resizeDecreaseQueue();
++//                            }
++//                            queue[queueLength++] =
++//                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                            | ((targetLevel & 0xFL) << (6 + 6 + 16))
++//                                            | ((propagate.everythingButTheOppositeDirection) << (6 + 6 + 16 + 4));
++//                            continue;
++//                        }
++//                        continue;
++//                    } else {
+                         this.mutablePos1.set(offX, offY, offZ);
+                         long flags = 0;
+                         if (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque()) {
+-                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(world, this.mutablePos1, propagate.getOpposite().nms);
++                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(propagate.getOpposite().nms);
+ 
+                             if (Shapes.faceShapeOccludes(Shapes.empty(), cullingFace)) {
+                                 continue;
+@@ -1390,7 +1403,7 @@ public abstract class StarLightEngine {
+                             flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                         }
+ 
+-                        final int opacity = blockState.getLightBlock(world, this.mutablePos1);
++                        final int opacity = blockState.getLightBlock();
+                         final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacity));
+                         if (lightLevel > targetLevel) {
+                             // it looks like another source propagated here, so re-propagate it
+@@ -1432,7 +1445,7 @@ public abstract class StarLightEngine {
+                                             | flags;
+                         }
+                         continue;
+-                    }
++//                    }
+                 }
+             } else {
+                 // we actually need to worry about our state here
+@@ -1446,7 +1459,7 @@ public abstract class StarLightEngine {
+                     final int sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
+                     final int localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+ 
+-                    final VoxelShape fromShape = (((ExtendedAbstractBlockState)fromBlock).isConditionallyFullOpaque()) ? fromBlock.getFaceOcclusionShape(world, this.mutablePos2, propagate.nms) : Shapes.empty();
++                    final VoxelShape fromShape = (((ExtendedAbstractBlockState)fromBlock).isConditionallyFullOpaque()) ? fromBlock.getFaceOcclusionShape(propagate.nms) : Shapes.empty();
+ 
+                     if (fromShape != Shapes.empty() && Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
+                         continue;
+@@ -1464,54 +1477,54 @@ public abstract class StarLightEngine {
+                     if (blockState == null) {
+                         continue;
+                     }
+-                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
+-                    if (opacityCached != -1) {
+-                        final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacityCached));
+-                        if (lightLevel > targetLevel) {
+-                            // it looks like another source propagated here, so re-propagate it
+-                            if (increaseQueueLength >= increaseQueue.length) {
+-                                increaseQueue = this.resizeIncreaseQueue();
+-                            }
+-                            increaseQueue[increaseQueueLength++] =
+-                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                            | ((lightLevel & 0xFL) << (6 + 6 + 16))
+-                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
+-                                            | FLAG_RECHECK_LEVEL;
+-                            continue;
+-                        }
+-                        final int emittedLight = blockState.getLightEmission() & emittedMask;
+-                        if (emittedLight != 0) {
+-                            // re-propagate source
+-                            // note: do not set recheck level, or else the propagation will fail
+-                            if (increaseQueueLength >= increaseQueue.length) {
+-                                increaseQueue = this.resizeIncreaseQueue();
+-                            }
+-                            increaseQueue[increaseQueueLength++] =
+-                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                            | ((emittedLight & 0xFL) << (6 + 6 + 16))
+-                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
+-                                            | (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque() ? (FLAG_WRITE_LEVEL | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) : FLAG_WRITE_LEVEL);
+-                        }
+-
+-                        currentNibble.set(localIndex, 0);
+-                        this.postLightUpdate(offX, offY, offZ);
+-
+-                        if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
+-                            if (queueLength >= queue.length) {
+-                                queue = this.resizeDecreaseQueue();
+-                            }
+-                            queue[queueLength++] =
+-                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+-                                            | ((targetLevel & 0xFL) << (6 + 6 + 16))
+-                                            | ((propagate.everythingButTheOppositeDirection) << (6 + 6 + 16 + 4));
+-                            continue;
+-                        }
+-                        continue;
+-                    } else {
++//                    final int opacityCached = ((ExtendedAbstractBlockState)blockState).getOpacityIfCached();
++//                    if (opacityCached != -1) {
++//                        final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacityCached));
++//                        if (lightLevel > targetLevel) {
++//                            // it looks like another source propagated here, so re-propagate it
++//                            if (increaseQueueLength >= increaseQueue.length) {
++//                                increaseQueue = this.resizeIncreaseQueue();
++//                            }
++//                            increaseQueue[increaseQueueLength++] =
++//                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                            | ((lightLevel & 0xFL) << (6 + 6 + 16))
++//                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
++//                                            | FLAG_RECHECK_LEVEL;
++//                            continue;
++//                        }
++//                        final int emittedLight = blockState.getLightEmission() & emittedMask;
++//                        if (emittedLight != 0) {
++//                            // re-propagate source
++//                            // note: do not set recheck level, or else the propagation will fail
++//                            if (increaseQueueLength >= increaseQueue.length) {
++//                                increaseQueue = this.resizeIncreaseQueue();
++//                            }
++//                            increaseQueue[increaseQueueLength++] =
++//                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                            | ((emittedLight & 0xFL) << (6 + 6 + 16))
++//                                            | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
++//                                            | (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque() ? (FLAG_WRITE_LEVEL | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) : FLAG_WRITE_LEVEL);
++//                        }
++//
++//                        currentNibble.set(localIndex, 0);
++//                        this.postLightUpdate(offX, offY, offZ);
++//
++//                        if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
++//                            if (queueLength >= queue.length) {
++//                                queue = this.resizeDecreaseQueue();
++//                            }
++//                            queue[queueLength++] =
++//                                    ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
++//                                            | ((targetLevel & 0xFL) << (6 + 6 + 16))
++//                                            | ((propagate.everythingButTheOppositeDirection) << (6 + 6 + 16 + 4));
++//                            continue;
++//                        }
++//                        continue;
++//                    } else {
+                         this.mutablePos1.set(offX, offY, offZ);
+                         long flags = 0;
+                         if (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque()) {
+-                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(world, this.mutablePos1, propagate.getOpposite().nms);
++                            final VoxelShape cullingFace = blockState.getFaceOcclusionShape(propagate.getOpposite().nms);
+ 
+                             if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {
+                                 continue;
+@@ -1519,7 +1532,7 @@ public abstract class StarLightEngine {
+                             flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
+                         }
+ 
+-                        final int opacity = blockState.getLightBlock(world, this.mutablePos1);
++                        final int opacity = blockState.getLightBlock();
+                         final int targetLevel = Math.max(0, propagatedLightLevel - Math.max(1, opacity));
+                         if (lightLevel > targetLevel) {
+                             // it looks like another source propagated here, so re-propagate it
+@@ -1561,7 +1574,7 @@ public abstract class StarLightEngine {
+                                             | flags;
+                         }
+                         continue;
+-                    }
++//                    }
+                 }
+             }
+         }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+index 74c41b2..06f6499 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+@@ -3,16 +3,21 @@ package ca.spottedleaf.starlight.common.util;
+ import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
+ import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
+ import ca.spottedleaf.starlight.common.light.StarLightEngine;
++import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
+ import com.mojang.logging.LogUtils;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.ListTag;
+-import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
++import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
++import net.minecraft.world.level.chunk.storage.SerializableChunkData;
+ import org.slf4j.Logger;
+ 
++import java.util.Arrays;
++import java.util.ListIterator;
++
+ public final class SaveUtil {
+ 
+     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -27,9 +32,9 @@ public final class SaveUtil {
+     private static final String SKYLIGHT_STATE_TAG = "starlight.skylight_state";
+     private static final String STARLIGHT_VERSION_TAG = "starlight.light_version";
+ 
+-    public static void saveLightHook(final Level world, final ChunkAccess chunk, final CompoundTag nbt) {
++    public static void prepareSaveLightHook(final ChunkAccess chunk, final SerializableChunkData data) {
+         try {
+-            saveLightHookReal(world, chunk, nbt);
++            prepareSaveLightHookReal(chunk, data);
+         } catch (final Throwable ex) {
+             // failing to inject is not fatal so we catch anything here. if it fails, it will have correctly set lit to false
+             // for Vanilla to relight on load and it will not set our lit tag so we will relight on load
+@@ -40,18 +45,53 @@ public final class SaveUtil {
+         }
+     }
+ 
+-    private static void saveLightHookReal(final Level world, final ChunkAccess chunk, final CompoundTag tag) {
++    private static void prepareSaveLightHookReal(final ChunkAccess chunk, final SerializableChunkData data) {
++        // strip existing lighting data
++        ListIterator<SerializableChunkData.SectionData> iterator = data.sectionData().listIterator(); // mutable in vanilla
++        while (iterator.hasNext()) {
++            SerializableChunkData.SectionData sectionData = iterator.next();
++            iterator.set(new SerializableChunkData.SectionData(sectionData.y(), sectionData.chunkSection(), null, null));
++        }
++
++        // store lighting data
++        ((ExtendedSerializableChunkData) (Object) data).scalablelux$setBlockLight(
++                Arrays.stream(((ExtendedChunk) chunk).getBlockNibbles())
++                        .map(SWMRNibbleArray::getSaveState)
++                        .toArray(SWMRNibbleArray.SaveState[]::new)
++        );
++        ((ExtendedSerializableChunkData) (Object) data).scalablelux$setSkyLight(
++                Arrays.stream(((ExtendedChunk) chunk).getSkyNibbles())
++                        .map(SWMRNibbleArray::getSaveState)
++                        .toArray(SWMRNibbleArray.SaveState[]::new)
++        );
++    }
++
++    public static void saveLightHook(final SerializableChunkData data, final CompoundTag nbt) {
++        try {
++            saveLightHookReal(data, nbt);
++        } catch (final Throwable ex) {
++            // failing to inject is not fatal so we catch anything here. if it fails, it will have correctly set lit to false
++            // for Vanilla to relight on load and it will not set our lit tag so we will relight on load
++            if (ex instanceof ThreadDeath) {
++                throw (ThreadDeath)ex;
++            }
++            LOGGER.warn("Failed to inject light data into save data for chunk " + data.chunkPos() + ", chunk light will be recalculated on its next load", ex);
++        }
++    }
++
++    private static void saveLightHookReal(final SerializableChunkData data, final CompoundTag tag) {
+         if (tag == null) {
+             return;
+         }
+ 
+-        final int minSection = WorldUtil.getMinLightSection(world);
+-        final int maxSection = WorldUtil.getMaxLightSection(world);
++        // light sections are exclusive
++        final int minSection = data.minSectionY() - 1; // exclusive
++        final int maxSection = data.minSectionY() + data.sectionData().size(); // exclusive
+ 
+-        SWMRNibbleArray[] blockNibbles = ((ExtendedChunk)chunk).getBlockNibbles();
+-        SWMRNibbleArray[] skyNibbles = ((ExtendedChunk)chunk).getSkyNibbles();
++        SWMRNibbleArray.SaveState[] blockNibbles = ((ExtendedSerializableChunkData) (Object) data).scalablelux$getBlockLight();
++        SWMRNibbleArray.SaveState[] skyNibbles = ((ExtendedSerializableChunkData) (Object) data).scalablelux$getSkyLight();
+ 
+-        boolean lit = chunk.isLightCorrect() || !(world instanceof ServerLevel);
++        boolean lit = data.lightCorrect();
+         // diff start - store our tag for whether light data is init'd
+         if (lit) {
+             tag.putBoolean("isLightOn", false);
+@@ -78,8 +118,8 @@ public final class SaveUtil {
+ 
+         if (lit && status.isOrAfter(ChunkStatus.LIGHT)) {
+             for (int i = minSection; i <= maxSection; ++i) {
+-                SWMRNibbleArray.SaveState blockNibble = blockNibbles[i - minSection].getSaveState();
+-                SWMRNibbleArray.SaveState skyNibble = skyNibbles[i - minSection].getSaveState();
++                SWMRNibbleArray.SaveState blockNibble = blockNibbles[i - minSection];
++                SWMRNibbleArray.SaveState skyNibble = skyNibbles[i - minSection];
+                 if (blockNibble != null || skyNibble != null) {
+                     CompoundTag section = sections[i - minSection];
+                     if (section == null) {
+@@ -124,37 +164,35 @@ public final class SaveUtil {
+         }
+     }
+ 
+-    public static void loadLightHook(final Level world, final ChunkPos pos, final CompoundTag tag, final ChunkAccess into) {
++    public static void prepareLoadLightHook(final LevelHeightAccessor levelHeightAccessor, final CompoundTag tag, final SerializableChunkData data) {
+         try {
+-            loadLightHookReal(world, pos, tag, into);
++            prepareLoadLightHookReal(levelHeightAccessor, tag, data);
+         } catch (final Throwable ex) {
+             // failing to inject is not fatal so we catch anything here. if it fails, then we simply relight. Not a problem, we get correct
+             // lighting in both cases.
+             if (ex instanceof ThreadDeath) {
+                 throw (ThreadDeath)ex;
+             }
+-            LOGGER.warn("Failed to load light for chunk " + pos + ", light will be recalculated", ex);
++            LOGGER.warn("Failed to load light for chunk " + data.chunkPos() + ", light will be recalculated", ex);
+         }
+     }
+ 
+-    private static void loadLightHookReal(final Level world, final ChunkPos pos, final CompoundTag tag, final ChunkAccess into) {
+-        if (into == null) {
+-            return;
+-        }
++    private static void prepareLoadLightHookReal(final LevelHeightAccessor world, final CompoundTag tag, final SerializableChunkData data) {
+         final int minSection = WorldUtil.getMinLightSection(world);
+         final int maxSection = WorldUtil.getMaxLightSection(world);
+ 
+-        into.setLightCorrect(false); // mark as unlit in case we fail parsing
+-
+-        SWMRNibbleArray[] blockNibbles = StarLightEngine.getFilledEmptyLight(world);
+-        SWMRNibbleArray[] skyNibbles = StarLightEngine.getFilledEmptyLight(world);
++        // mark as unlit in case we fail parsing
++        ((ExtendedSerializableChunkData) (Object) data).scalablelux$setLightCorrect(false);
++        ((ExtendedSerializableChunkData) (Object) data).scalableLux$setActuallyCorrect(false);
+ 
++        SWMRNibbleArray.SaveState[] blockLight = StarLightEngine.getFilledEmptySaveState(world);
++        SWMRNibbleArray.SaveState[] skyLight = StarLightEngine.getFilledEmptySaveState(world);
+ 
+-        // start copy from the original method
+         boolean lit = tag.get("isLightOn") != null && tag.getInt(STARLIGHT_VERSION_TAG) == STARLIGHT_LIGHT_VERSION;
+-        boolean canReadSky = world.dimensionType().hasSkyLight();
+-        ChunkStatus status = ChunkStatus.byName(tag.getString("Status"));
+-        if (lit && status.isOrAfter(ChunkStatus.LIGHT)) { // diff - we add the status check here
++        // not enough context: assumes always reads skylight
++        ChunkStatus status = data.chunkStatus();
++
++        if (lit && status.isOrAfter(ChunkStatus.LIGHT)) {
+             ListTag sections = tag.getList("sections", 10);
+ 
+             for (int i = 0; i < sections.size(); ++i) {
+@@ -162,30 +200,64 @@ public final class SaveUtil {
+                 int y = sectionData.getByte("Y");
+ 
+                 if (sectionData.contains("BlockLight", 7)) {
+-                    // this is where our diff is
+-                    blockNibbles[y - minSection] = new SWMRNibbleArray(sectionData.getByteArray("BlockLight").clone(), sectionData.getInt(BLOCKLIGHT_STATE_TAG)); // clone for data safety
++                    blockLight[y - minSection] = new SWMRNibbleArray.SaveState(sectionData.getByteArray("BlockLight").clone(), sectionData.getInt(BLOCKLIGHT_STATE_TAG)); // clone for data safety
+                 } else {
+-                    blockNibbles[y - minSection] = new SWMRNibbleArray(null, sectionData.getInt(BLOCKLIGHT_STATE_TAG));
++                    blockLight[y - minSection] = new SWMRNibbleArray.SaveState(null, sectionData.getInt(BLOCKLIGHT_STATE_TAG));
+                 }
+ 
+-                if (canReadSky) {
+-                    if (sectionData.contains("SkyLight", 7)) {
+-                        // we store under the same key so mod programs editing nbt
+-                        // can still read the data, hopefully.
+-                        // however, for compatibility we store chunks as unlit so vanilla
+-                        // is forced to re-light them if it encounters our data. It's too much of a burden
+-                        // to try and maintain compatibility with a broken and inferior skylight management system.
+-                        skyNibbles[y - minSection] = new SWMRNibbleArray(sectionData.getByteArray("SkyLight").clone(), sectionData.getInt(SKYLIGHT_STATE_TAG)); // clone for data safety
+-                    } else {
+-                        skyNibbles[y - minSection] = new SWMRNibbleArray(null, sectionData.getInt(SKYLIGHT_STATE_TAG));
+-                    }
++                if (sectionData.contains("SkyLight", 7)) {
++                    // we store under the same key so mod programs editing nbt
++                    // can still read the data, hopefully.
++                    // however, for compatibility we store chunks as unlit so vanilla
++                    // is forced to re-light them if it encounters our data. It's too much of a burden
++                    // to try and maintain compatibility with a broken and inferior skylight management system.
++                    skyLight[y - minSection] = new SWMRNibbleArray.SaveState(sectionData.getByteArray("SkyLight").clone(), sectionData.getInt(SKYLIGHT_STATE_TAG)); // clone for data safety
++                } else {
++                    skyLight[y - minSection] = new SWMRNibbleArray.SaveState(null, sectionData.getInt(SKYLIGHT_STATE_TAG));
+                 }
+             }
+         }
+-        // end copy from vanilla
++
++        ((ExtendedSerializableChunkData) (Object) data).scalablelux$setBlockLight(blockLight);
++        ((ExtendedSerializableChunkData) (Object) data).scalablelux$setSkyLight(skyLight);
++
++        ((ExtendedSerializableChunkData) (Object) data).scalableLux$setActuallyCorrect(lit);
++    }
++
++    public static void loadLightHook(final Level world, final SerializableChunkData data, final ChunkAccess into) {
++        try {
++            loadLightHookReal(world, data, into);
++        } catch (final Throwable ex) {
++            // failing to inject is not fatal so we catch anything here. if it fails, then we simply relight. Not a problem, we get correct
++            // lighting in both cases.
++            if (ex instanceof ThreadDeath) {
++                throw (ThreadDeath)ex;
++            }
++            LOGGER.warn("Failed to load light for chunk " + data.chunkPos() + ", light will be recalculated", ex);
++        }
++    }
++
++    private static void loadLightHookReal(final Level world, final SerializableChunkData data, final ChunkAccess into) {
++        if (into == null) {
++            return;
++        }
++        final int minSection = WorldUtil.getMinLightSection(world);
++        final int maxSection = WorldUtil.getMaxLightSection(world);
++
++        into.setLightCorrect(false); // mark as unlit in case we fail parsing
++
++        SWMRNibbleArray[] blockNibbles = Arrays.stream(((ExtendedSerializableChunkData) (Object) data).scalablelux$getBlockLight())
++                .map(state -> new SWMRNibbleArray(state.data, state.state))
++                .toArray(SWMRNibbleArray[]::new);
++        SWMRNibbleArray[] skyNibbles = Arrays.stream(((ExtendedSerializableChunkData) (Object) data).scalablelux$getSkyLight())
++                .map(state -> new SWMRNibbleArray(state.data, state.state))
++                .toArray(SWMRNibbleArray[]::new);
++
++        boolean lit = ((ExtendedSerializableChunkData) (Object) data).scalablelux$getActuallyCorrect();
+ 
+         ((ExtendedChunk)into).setBlockNibbles(blockNibbles);
+         ((ExtendedChunk)into).setSkyNibbles(skyNibbles);
++
+         into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
+     }
+ 
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/WorldUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/WorldUtil.java
+index dd995e2..2809133 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/util/WorldUtil.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/util/WorldUtil.java
+@@ -7,11 +7,11 @@ public final class WorldUtil {
+     // min, max are inclusive
+ 
+     public static int getMaxSection(final LevelHeightAccessor world) {
+-        return world.getMaxSection() - 1; // getMaxSection() is exclusive
++        return world.getMaxSectionY(); // getMaxSection() is ~~exclusive~~ inclusive since 24w33a
+     }
+ 
+     public static int getMinSection(final LevelHeightAccessor world) {
+-        return world.getMinSection();
++        return world.getMinSectionY();
+     }
+ 
+     public static int getMaxLightSection(final LevelHeightAccessor world) {
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/world/ExtendedSerializableChunkData.java b/src/main/java/ca/spottedleaf/starlight/common/world/ExtendedSerializableChunkData.java
+new file mode 100644
+index 0000000..6784981
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/common/world/ExtendedSerializableChunkData.java
+@@ -0,0 +1,21 @@
++package ca.spottedleaf.starlight.common.world;
++
++import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
++
++public interface ExtendedSerializableChunkData {
++
++    void scalablelux$setBlockLight(SWMRNibbleArray.SaveState[] light);
++
++    void scalablelux$setSkyLight(SWMRNibbleArray.SaveState[] light);
++
++    void scalableLux$setActuallyCorrect(boolean correct);
++
++    SWMRNibbleArray.SaveState[] scalablelux$getBlockLight();
++
++    SWMRNibbleArray.SaveState[] scalablelux$getSkyLight();
++
++    boolean scalablelux$getActuallyCorrect();
++
++    void scalablelux$setLightCorrect(boolean correct);
++
++}
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
+index 64c8a1f..7e0cf53 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
+@@ -40,7 +40,7 @@ public abstract class ClientPacketListenerMixin implements ClientGamePacketListe
+      */
+ 
+     @Shadow
+-    protected abstract void applyLightData(final int chunkX, final int chunkZ, final ClientboundLightUpdatePacketData clientboundLightUpdatePacketData);
++    protected abstract void applyLightData(final int chunkX, final int chunkZ, final ClientboundLightUpdatePacketData clientboundLightUpdatePacketData, boolean markDirty);
+ 
+     @Shadow
+     protected abstract void enableChunkLight(final LevelChunk levelChunk, final int chunkX, final int chunkZ);
+@@ -127,7 +127,7 @@ public abstract class ClientPacketListenerMixin implements ClientGamePacketListe
+             return;
+         }
+         // load in light data from packet immediately
+-        this.applyLightData(chunkX, chunkZ, clientboundLevelChunkWithLightPacket.getLightData());
++        this.applyLightData(chunkX, chunkZ, clientboundLevelChunkWithLightPacket.getLightData(), true);
+         ((StarLightLightingProvider)this.level.getChunkSource().getLightEngine()).clientChunkLoad(new ChunkPos(chunkX, chunkZ), chunk);
+ 
+         // we need this for the update chunk status call, so that it can tell starlight what sections are empty and such
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
+index eddfc49..84f2af1 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
+@@ -28,12 +28,6 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+     @Final
+     private boolean canOcclude;
+ 
+-    @Shadow
+-    protected BlockBehaviour.BlockStateBase.Cache cache;
+-
+-    @Unique
+-    private int opacityIfCached;
+-
+     @Unique
+     private boolean isConditionallyFullOpaque;
+ 
+@@ -50,7 +44,6 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+     )
+     public void initLightAccessState(final CallbackInfo ci) {
+         this.isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
+-        this.opacityIfCached = this.cache == null || this.isConditionallyFullOpaque ? -1 : this.cache.lightBlock;
+     }
+ 
+     @Override
+@@ -58,8 +51,4 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+         return this.isConditionallyFullOpaque;
+     }
+ 
+-    @Override
+-    public final int getOpacityIfCached() {
+-        return this.opacityIfCached;
+-    }
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/chunk/ImposterProtoChunkMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/chunk/ImposterProtoChunkMixin.java
+index dcdce91..cbc111f 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/chunk/ImposterProtoChunkMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/chunk/ImposterProtoChunkMixin.java
+@@ -20,7 +20,7 @@ public abstract class ImposterProtoChunkMixin extends ProtoChunk implements Exte
+     private LevelChunk wrapped;
+ 
+     public ImposterProtoChunkMixin(final LevelChunk levelChunk, final boolean bl) {
+-        super(levelChunk.getPos(), UpgradeData.EMPTY, levelChunk, levelChunk.getLevel().registryAccess().registryOrThrow(Registries.BIOME), levelChunk.getBlendingData());
++        super(levelChunk.getPos(), UpgradeData.EMPTY, levelChunk, levelChunk.getLevel().registryAccess().lookupOrThrow(Registries.BIOME), levelChunk.getBlendingData());
+     }
+ 
+     @Override
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/LevelLightEngineMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/LevelLightEngineMixin.java
+index c2249cf..7f0af09 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/LevelLightEngineMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/LevelLightEngineMixin.java
+@@ -179,8 +179,8 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
+      * @author Spottedleaf
+      */
+     @Overwrite
+-    public boolean lightOnInSection(final SectionPos pos) {
+-        final long key = CoordinateUtils.getChunkKey(pos.getX(), pos.getZ());
++    public boolean lightOnInColumn(final long pos) {
++        final long key = CoordinateUtils.getChunkKey(SectionPos.x(pos), SectionPos.z(pos));
+         return (!this.lightEngine.hasBlockLight() || this.blockLightMap.get(key) != null) && (!this.lightEngine.hasSkyLight() || this.skyLightMap.get(key) != null);
+     }
+ 
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java
+deleted file mode 100644
+index 8c71409..0000000
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/ChunkSerializerMixin.java
++++ /dev/null
+@@ -1,44 +0,0 @@
+-package ca.spottedleaf.starlight.mixin.common.world;
+-
+-import ca.spottedleaf.starlight.common.util.SaveUtil;
+-import net.minecraft.nbt.CompoundTag;
+-import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.world.entity.ai.village.poi.PoiManager;
+-import net.minecraft.world.level.ChunkPos;
+-import net.minecraft.world.level.chunk.ChunkAccess;
+-import net.minecraft.world.level.chunk.ProtoChunk;
+-import net.minecraft.world.level.chunk.storage.ChunkSerializer;
+-import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+-import org.spongepowered.asm.mixin.Mixin;
+-import org.spongepowered.asm.mixin.injection.At;
+-import org.spongepowered.asm.mixin.injection.Inject;
+-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+-
+-@Mixin(ChunkSerializer.class)
+-public abstract class ChunkSerializerMixin {
+-
+-    /**
+-     * Overwrites vanilla's light data with our own.
+-     * TODO this needs to be checked on update to account for format changes
+-     */
+-    @Inject(
+-            method = "write",
+-            at = @At("RETURN")
+-    )
+-    private static void saveLightHook(final ServerLevel world, final ChunkAccess chunk, final CallbackInfoReturnable<CompoundTag> cir) {
+-        SaveUtil.saveLightHook(world, chunk, cir.getReturnValue());
+-    }
+-
+-    /**
+-     * Loads our light data into the returned chunk object from the tag.
+-     * TODO this needs to be checked on update to account for format changes
+-     */
+-    @Inject(
+-            method = "read",
+-            at = @At("RETURN")
+-    )
+-    private static void loadLightHook(final ServerLevel serverLevel, final PoiManager poiManager, final RegionStorageInfo regionStorageInfo, final ChunkPos chunkPos,
+-                                      final CompoundTag compoundTag, final CallbackInfoReturnable<ProtoChunk> cir) {
+-        SaveUtil.loadLightHook(serverLevel, chunkPos, compoundTag, cir.getReturnValue());
+-    }
+-}
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
+new file mode 100644
+index 0000000..f38820c
+--- /dev/null
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
+@@ -0,0 +1,109 @@
++package ca.spottedleaf.starlight.mixin.common.world;
++
++import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
++import ca.spottedleaf.starlight.common.util.SaveUtil;
++import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
++import net.minecraft.core.RegistryAccess;
++import net.minecraft.nbt.CompoundTag;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.ai.village.poi.PoiManager;
++import net.minecraft.world.level.ChunkPos;
++import net.minecraft.world.level.LevelHeightAccessor;
++import net.minecraft.world.level.chunk.ChunkAccess;
++import net.minecraft.world.level.chunk.ProtoChunk;
++import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
++import net.minecraft.world.level.chunk.storage.SerializableChunkData;
++import org.spongepowered.asm.mixin.*;
++import org.spongepowered.asm.mixin.injection.At;
++import org.spongepowered.asm.mixin.injection.Inject;
++import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
++
++@Mixin(SerializableChunkData.class)
++public abstract class SerializableChunkDataMixin implements ExtendedSerializableChunkData {
++
++    @Mutable
++    @Shadow
++    @Final
++    private boolean lightCorrect;
++    @Unique
++    private SWMRNibbleArray.SaveState[] scalablelux$blocklight;
++    @Unique
++    private SWMRNibbleArray.SaveState[] scalablelux$skylight;
++    @Unique
++    private boolean scalablelux$actuallyCorrect;
++
++    @Override
++    public void scalablelux$setBlockLight(SWMRNibbleArray.SaveState[] light) {
++        this.scalablelux$blocklight = light;
++    }
++
++    @Override
++    public void scalablelux$setSkyLight(SWMRNibbleArray.SaveState[] light) {
++        this.scalablelux$skylight = light;
++    }
++
++    @Override
++    public void scalableLux$setActuallyCorrect(boolean correct) {
++        this.scalablelux$actuallyCorrect = correct;
++    }
++
++    @Override
++    public SWMRNibbleArray.SaveState[] scalablelux$getBlockLight() {
++        return this.scalablelux$blocklight;
++    }
++
++    @Override
++    public SWMRNibbleArray.SaveState[] scalablelux$getSkyLight() {
++        return this.scalablelux$skylight;
++    }
++
++    @Override
++    public boolean scalablelux$getActuallyCorrect() {
++        return this.scalablelux$actuallyCorrect;
++    }
++
++    @Override
++    public void scalablelux$setLightCorrect(boolean correct) {
++        this.lightCorrect = correct;
++    }
++
++    /**
++     * Overwrites vanilla's light data with our own.
++     * TODO this needs to be checked on update to account for format changes
++     */
++    @Inject(
++            method = "copyOf",
++            at = @At("RETURN")
++    )
++    private static void prepareSaveLightHook(ServerLevel world, ChunkAccess chunk, CallbackInfoReturnable<SerializableChunkData> cir) {
++        SaveUtil.prepareSaveLightHook(chunk, cir.getReturnValue());
++    }
++
++    @Inject(
++            method = "write",
++            at = @At("RETURN")
++    )
++    private void saveLightHook(CallbackInfoReturnable<CompoundTag> cir) {
++        SaveUtil.saveLightHook((SerializableChunkData) (Object) this, cir.getReturnValue());
++    }
++
++    @Inject(
++            method = "parse",
++            at = @At("RETURN")
++    )
++    private static void prepareLoadLightHook(LevelHeightAccessor levelHeightAccessor, RegistryAccess registryAccess, CompoundTag compoundTag, CallbackInfoReturnable<SerializableChunkData> cir) {
++        SaveUtil.prepareLoadLightHook(levelHeightAccessor, compoundTag, cir.getReturnValue());
++    }
++
++    /**
++     * Loads our light data into the returned chunk object from the tag.
++     * TODO this needs to be checked on update to account for format changes
++     */
++    @Inject(
++            method = "read",
++            at = @At("RETURN")
++    )
++    private void loadLightHook(ServerLevel serverLevel, PoiManager poiManager, RegionStorageInfo regionStorageInfo, ChunkPos chunkPos, CallbackInfoReturnable<ProtoChunk> cir) {
++        SaveUtil.loadLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
++    }
++}
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+index 3fd08e7..2c2a5e7 100644
+--- a/src/main/resources/fabric.mod.json
++++ b/src/main/resources/fabric.mod.json
+@@ -32,6 +32,6 @@
+   "accessWidener" : "scalablelux.accesswidener",
+   "depends": {
+     "fabricloader": ">=${loader_version}",
+-    "minecraft": ">=${minecraft_version}"
++    "minecraft": ">1.21.1"
+   }
+ }
+diff --git a/src/main/resources/scalablelux.accesswidener b/src/main/resources/scalablelux.accesswidener
+index 3b4c469..a3103b8 100644
+--- a/src/main/resources/scalablelux.accesswidener
++++ b/src/main/resources/scalablelux.accesswidener
+@@ -2,7 +2,7 @@ accessWidener v1 named
+ 
+ # BlockStateBase.ShapeCache
+ accessible class net/minecraft/world/level/block/state/BlockBehaviour$BlockStateBase$Cache
+-accessible field net/minecraft/world/level/block/state/BlockBehaviour$BlockStateBase$Cache lightBlock I
++#accessible field net/minecraft/world/level/block/state/BlockBehaviour$BlockStateBase$Cache lightBlock I
+ 
+ 
+ # LevelChunkSection
+diff --git a/src/main/resources/scalablelux.mixins.json b/src/main/resources/scalablelux.mixins.json
+index f1914fb..fe2ccb2 100644
+--- a/src/main/resources/scalablelux.mixins.json
++++ b/src/main/resources/scalablelux.mixins.json
+@@ -12,7 +12,7 @@
+     "common.chunk.ProtoChunkMixin",
+     "common.lightengine.LevelLightEngineMixin",
+     "common.lightengine.ThreadedLevelLightEngineMixin",
+-    "common.world.ChunkSerializerMixin",
++    "common.world.SerializableChunkDataMixin",
+     "common.world.LevelMixin",
+     "common.world.ServerWorldMixin",
+     "common.world.WorldGenRegionMixin"
