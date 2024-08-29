@@ -12,7 +12,7 @@
     "common.chunk.ProtoChunkMixin",
     "common.lightengine.LevelLightEngineMixin",
     "common.lightengine.ThreadedLevelLightEngineMixin",
-    "common.world.ChunkSerializerMixin",
+    "common.world.SerializableChunkDataMixin",
     "common.world.LevelMixin",
     "common.world.ServerWorldMixin",
     "common.world.WorldGenRegionMixin"

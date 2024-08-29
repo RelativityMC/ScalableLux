@@ -302,20 +302,14 @@ public final class SkyStarLightEngine extends StarLightEngine {
 
         final int sectionOffset = this.chunkSectionIndexOffset;
         final BlockState centerState = this.getBlockState(worldX, worldY, worldZ);
-        int opacity = ((ExtendedAbstractBlockState)centerState).getOpacityIfCached();
 
         final BlockState conditionallyOpaqueState;
-        if (opacity < 0) {
-            this.recalcCenterPos.set(worldX, worldY, worldZ);
-            opacity = Math.max(1, centerState.getLightBlock(lightAccess.getLevel(), this.recalcCenterPos));
-            if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
-                conditionallyOpaqueState = centerState;
-            } else {
-                conditionallyOpaqueState = null;
-            }
+        this.recalcCenterPos.set(worldX, worldY, worldZ);
+        int opacity = Math.max(1, centerState.getLightBlock());
+        if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
+            conditionallyOpaqueState = centerState;
         } else {
             conditionallyOpaqueState = null;
-            opacity = Math.max(1, opacity);
         }
 
         int level = 0;
@@ -341,8 +335,8 @@ public final class SkyStarLightEngine extends StarLightEngine {
                 // we don't read the blockstate because most of the time this is false, so using the faster
                 // known transparency lookup results in a net win
                 this.recalcNeighbourPos.set(offX, offY, offZ);
-                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcNeighbourPos, direction.opposite.nms);
-                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcCenterPos, direction.nms);
+                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape( direction.opposite.nms);
+                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(direction.nms);
                 if (Shapes.faceShapeOccludes(thisFace, neighbourFace)) {
                     // not allowed to propagate
                     continue;
@@ -633,7 +627,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
             final VoxelShape fromShape;
             if (((ExtendedAbstractBlockState)above).isConditionallyFullOpaque()) {
                 this.mutablePos2.set(worldX, startY + 1, worldZ);
-                fromShape = above.getFaceOcclusionShape(world, this.mutablePos2, AxisDirection.NEGATIVE_Y.nms);
+                fromShape = above.getFaceOcclusionShape(AxisDirection.NEGATIVE_Y.nms);
                 if (Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
                     // above wont let us propagate
                     break;
@@ -642,26 +636,26 @@ public final class SkyStarLightEngine extends StarLightEngine {
                 fromShape = Shapes.empty();
             }
 
-            final int opacityIfCached = ((ExtendedAbstractBlockState)current).getOpacityIfCached();
+//            final int opacityIfCached = ((ExtendedAbstractBlockState)current).getOpacityIfCached();
             // does light propagate from the top down?
-            if (opacityIfCached != -1) {
-                if (opacityIfCached != 0) {
-                    // we cannot propagate 15 through this
-                    break;
-                }
-                // most of the time it falls here.
-                // add to propagate
-                // light set delayed until we determine if this nibble section is null
-                this.appendToIncreaseQueue(
-                        ((worldX + (worldZ << 6) + (startY << (6 + 6)) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
-                                | (15L << (6 + 6 + 16)) // we know we're at full lit here
-                                | (propagateDirection << (6 + 6 + 16 + 4))
-                );
-            } else {
+//            if (opacityIfCached != -1) {
+//                if (opacityIfCached != 0) {
+//                    // we cannot propagate 15 through this
+//                    break;
+//                }
+//                // most of the time it falls here.
+//                // add to propagate
+//                // light set delayed until we determine if this nibble section is null
+//                this.appendToIncreaseQueue(
+//                        ((worldX + (worldZ << 6) + (startY << (6 + 6)) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
+//                                | (15L << (6 + 6 + 16)) // we know we're at full lit here
+//                                | (propagateDirection << (6 + 6 + 16 + 4))
+//                );
+//            } else {
                 mutablePos.set(worldX, startY, worldZ);
                 long flags = 0L;
                 if (((ExtendedAbstractBlockState)current).isConditionallyFullOpaque()) {
-                    final VoxelShape cullingFace = current.getFaceOcclusionShape(world, mutablePos, AxisDirection.POSITIVE_Y.nms);
+                    final VoxelShape cullingFace = current.getFaceOcclusionShape(AxisDirection.POSITIVE_Y.nms);
 
                     if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {
                         // can't propagate here, we're done on this column.
@@ -670,7 +664,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
                     flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
                 }
 
-                final int opacity = current.getLightBlock(world, mutablePos);
+                final int opacity = current.getLightBlock();
                 if (opacity > 0) {
                     // let the queued value (if any) handle it from here.
                     break;
@@ -683,7 +677,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
                                 | (propagateDirection << (6 + 6 + 16 + 4))
                                 | flags
                 );
-            }
+//            }
 
             above = current;
 

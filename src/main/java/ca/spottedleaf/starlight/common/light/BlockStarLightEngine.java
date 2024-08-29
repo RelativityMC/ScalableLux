@@ -137,22 +137,15 @@ public final class BlockStarLightEngine extends StarLightEngine {
 
         final int sectionOffset = this.chunkSectionIndexOffset;
         final BlockState conditionallyOpaqueState;
-        int opacity = ((ExtendedAbstractBlockState)centerState).getOpacityIfCached();
-
-        if (opacity == -1) {
-            this.recalcCenterPos.set(worldX, worldY, worldZ);
-            opacity = centerState.getLightBlock(lightAccess.getLevel(), this.recalcCenterPos);
-            if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
-                conditionallyOpaqueState = centerState;
-            } else {
-                conditionallyOpaqueState = null;
-            }
-        } else if (opacity >= 15) {
-            return level;
+        int opacity = Math.max(1, centerState.getLightBlock());
+        if (opacity >= 15) {
+            return level; // TODO in older starlight, opacity >= 15 can go into the loop below, but it probably shouldn't
+        }
+        if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
+            conditionallyOpaqueState = centerState;
         } else {
             conditionallyOpaqueState = null;
         }
-        opacity = Math.max(1, opacity);
 
         for (final AxisDirection direction : AXIS_DIRECTIONS) {
             final int offX = worldX + direction.x;
@@ -174,8 +167,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
                 // we don't read the blockstate because most of the time this is false, so using the faster
                 // known transparency lookup results in a net win
                 this.recalcNeighbourPos.set(offX, offY, offZ);
-                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcNeighbourPos, direction.opposite.nms);
-                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(lightAccess.getLevel(), this.recalcCenterPos, direction.nms);
+                final VoxelShape neighbourFace = neighbourState.getFaceOcclusionShape(direction.opposite.nms);
+                final VoxelShape thisFace = conditionallyOpaqueState == null ? Shapes.empty() : conditionallyOpaqueState.getFaceOcclusionShape(direction.nms);
                 if (Shapes.faceShapeOccludes(thisFace, neighbourFace)) {
                     // not allowed to propagate
                     continue;
