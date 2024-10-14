@@ -1,0 +1,152 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Mon, 14 Oct 2024 17:00:35 +0800
+Subject: [PATCH] Allow using vanilla lighting format
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
+index 5ecceaa..ae29dcf 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
+@@ -19,6 +19,7 @@ public class Config {
+     private static final Logger LOGGER = LogManager.getLogger();
+ 
+     public static final int PARALLELISM;
++    public static final boolean USE_STARLIGHT_FORMAT;
+ 
+     static {
+         final Properties properties = new Properties();
+@@ -41,6 +42,7 @@ public class Config {
+         } else {
+             PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
+         }
++        USE_STARLIGHT_FORMAT = getBoolean(properties, newProperties, "use_starlight_format", false);
+ 
+         if (!newProperties.isEmpty()) {
+             try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+index 06f6499..8e5ffc4 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+@@ -16,6 +16,7 @@ import net.minecraft.world.level.chunk.storage.SerializableChunkData;
+ import org.slf4j.Logger;
+ 
+ import java.util.Arrays;
++import java.util.List;
+ import java.util.ListIterator;
+ 
+ public final class SaveUtil {
+@@ -261,5 +262,57 @@ public final class SaveUtil {
+         into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
+     }
+ 
++    public static void loadVanillaLightHook(final Level world, final SerializableChunkData data, final ChunkAccess into) {
++        try {
++            loadVanillaLightHookReal(world, data, into);
++        } catch (final Throwable ex) {
++            // failing to inject is not fatal so we catch anything here. if it fails, then we simply relight. Not a problem, we get correct
++            // lighting in both cases.
++            if (ex instanceof ThreadDeath) {
++                throw (ThreadDeath)ex;
++            }
++            LOGGER.warn("Failed to load light for chunk " + data.chunkPos() + ", light will be recalculated", ex);
++        }
++    }
++
++    private static void loadVanillaLightHookReal(final Level world, final SerializableChunkData data, final ChunkAccess into) {
++        if (into == null) {
++            return;
++        }
++        final int minSection = WorldUtil.getMinLightSection(world);
++        final int maxSection = WorldUtil.getMaxLightSection(world);
++
++        boolean lit = into.isLightCorrect();
++        ChunkStatus status = data.chunkStatus();
++
++        into.setLightCorrect(false); // mark as unlit in case we fail parsing
++
++        SWMRNibbleArray[] blockNibbles = StarLightEngine.getFilledEmptyLight(world);
++        SWMRNibbleArray[] skyNibbles = StarLightEngine.getFilledEmptyLight(world);
++
++        if (lit && status.isOrAfter(ChunkStatus.LIGHT)) {
++            List<SerializableChunkData.SectionData> sectionData = data.sectionData();
++            for (int i = 0, sectionDataSize = sectionData.size(); i < sectionDataSize; i++) {
++                SerializableChunkData.SectionData section = sectionData.get(i);
++                int y = section.y();
++
++                if (section.blockLight() != null) {
++                    // this is where our diff is
++                    blockNibbles[y - minSection] = new SWMRNibbleArray(section.blockLight().getData().clone()); // clone for data safety
++                }
++
++                if (section.skyLight() != null) {
++                    skyNibbles[y - minSection] = new SWMRNibbleArray(section.skyLight().getData().clone()); // clone for data safety
++                }
++            }
++
++        }
++
++        ((ExtendedChunk)into).setBlockNibbles(blockNibbles);
++        ((ExtendedChunk)into).setSkyNibbles(skyNibbles);
++
++        into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
++    }
++
+     private SaveUtil() {}
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
+index f38820c..9715ba3 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
+@@ -1,5 +1,6 @@
+ package ca.spottedleaf.starlight.mixin.common.world;
+ 
++import ca.spottedleaf.starlight.common.config.Config;
+ import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
+ import ca.spottedleaf.starlight.common.util.SaveUtil;
+ import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
+@@ -76,7 +77,9 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
+             at = @At("RETURN")
+     )
+     private static void prepareSaveLightHook(ServerLevel world, ChunkAccess chunk, CallbackInfoReturnable<SerializableChunkData> cir) {
+-        SaveUtil.prepareSaveLightHook(chunk, cir.getReturnValue());
++        if (Config.USE_STARLIGHT_FORMAT) {
++            SaveUtil.prepareSaveLightHook(chunk, cir.getReturnValue());
++        }
+     }
+ 
+     @Inject(
+@@ -84,7 +87,9 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
+             at = @At("RETURN")
+     )
+     private void saveLightHook(CallbackInfoReturnable<CompoundTag> cir) {
+-        SaveUtil.saveLightHook((SerializableChunkData) (Object) this, cir.getReturnValue());
++        if (Config.USE_STARLIGHT_FORMAT) {
++            SaveUtil.saveLightHook((SerializableChunkData) (Object) this, cir.getReturnValue());
++        }
+     }
+ 
+     @Inject(
+@@ -92,7 +97,9 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
+             at = @At("RETURN")
+     )
+     private static void prepareLoadLightHook(LevelHeightAccessor levelHeightAccessor, RegistryAccess registryAccess, CompoundTag compoundTag, CallbackInfoReturnable<SerializableChunkData> cir) {
+-        SaveUtil.prepareLoadLightHook(levelHeightAccessor, compoundTag, cir.getReturnValue());
++        if (Config.USE_STARLIGHT_FORMAT) {
++            SaveUtil.prepareLoadLightHook(levelHeightAccessor, compoundTag, cir.getReturnValue());
++        }
+     }
+ 
+     /**
+@@ -104,6 +111,10 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
+             at = @At("RETURN")
+     )
+     private void loadLightHook(ServerLevel serverLevel, PoiManager poiManager, RegionStorageInfo regionStorageInfo, ChunkPos chunkPos, CallbackInfoReturnable<ProtoChunk> cir) {
+-        SaveUtil.loadLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
++        if (Config.USE_STARLIGHT_FORMAT) {
++            SaveUtil.loadLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
++        } else {
++            SaveUtil.loadVanillaLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
++        }
+     }
+ }

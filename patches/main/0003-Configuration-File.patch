@@ -22,13 +22,17 @@ index 3d65275..df74ac1 100644
  }
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 new file mode 100644
-index 0000000..1f9762c
+index 0000000..bb77b7d
 --- /dev/null
 +++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,99 @@
 +package ca.spottedleaf.starlight.common.config;
 +
 +import net.fabricmc.loader.api.FabricLoader;
++import net.fabricmc.loader.api.ModContainer;
++import net.fabricmc.loader.api.metadata.CustomValue;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
 +
 +import java.io.IOException;
 +import java.io.InputStream;
@@ -39,6 +43,7 @@ index 0000000..1f9762c
 +import java.util.Properties;
 +
 +public class Config {
++    private static final Logger LOGGER = LogManager.getLogger();
 +
 +    static {
 +        final Properties properties = new Properties();
@@ -74,6 +79,49 @@ index 0000000..1f9762c
 +            newProperties.setProperty(key, String.valueOf(def));
 +            return def;
 +        }
++    }
++
++    private static boolean getBoolean(Properties properties, Properties newProperties, String key, boolean def) {
++        boolean boolean0 = getBoolean0(properties, newProperties, key, def);
++        for (ModContainer modContainer : FabricLoader.getInstance().getAllMods()) {
++            final CustomValue incompatibilitiesValue = modContainer.getMetadata().getCustomValue("scalablelux:incompatibleConfig");
++            if (incompatibilitiesValue != null && incompatibilitiesValue.getType() == CustomValue.CvType.ARRAY) {
++                final CustomValue.CvArray incompatibilities = incompatibilitiesValue.getAsArray();
++                for (CustomValue value : incompatibilities) {
++                    if (value.getType() == CustomValue.CvType.STRING && value.getAsString().equals(key)) {
++                        final String message;
++                        if (Boolean.getBoolean("scalablelux.ignoreIncompatibleConfig")) {
++                            message = String.format("Ignoring incompatibility of %s (defined in %s@%s)",
++                                    key, modContainer.getMetadata().getId(), modContainer.getMetadata().getVersion().getFriendlyString());
++                        } else {
++                            message = String.format("Forcing %s in scalablelux.properties to be disabled (defined in %s@%s)",
++                                    key, modContainer.getMetadata().getId(), modContainer.getMetadata().getVersion().getFriendlyString());
++                            boolean0 = false;
++                        }
++                        LOGGER.warn(message);
++                    }
++                }
++            }
++        }
++        return boolean0;
++    }
++
++    private static boolean getBoolean0(Properties properties, Properties newProperties, String key, boolean def) {
++        try {
++            final boolean b = parseBoolean(properties.getProperty(key));
++            newProperties.setProperty(key, String.valueOf(b));
++            return b;
++        } catch (NumberFormatException e) {
++            newProperties.setProperty(key, String.valueOf(def));
++            return def;
++        }
++    }
++
++    private static boolean parseBoolean(String string) {
++        if (string == null) throw new NumberFormatException("null");
++        if (string.trim().equalsIgnoreCase("true")) return true;
++        if (string.trim().equalsIgnoreCase("false")) return false;
++        throw new NumberFormatException(string);
 +    }
 +
 +}

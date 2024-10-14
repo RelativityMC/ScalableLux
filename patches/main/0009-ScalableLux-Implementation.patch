@@ -5,7 +5,7 @@ Subject: [PATCH] ScalableLux Implementation
 
 
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
-index 1f9762c..bca4093 100644
+index bb77b7d..5ecceaa 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 @@ -1,5 +1,6 @@
@@ -13,17 +13,18 @@ index 1f9762c..bca4093 100644
  
 +import ca.spottedleaf.starlight.common.thread.SchedulingUtil;
  import net.fabricmc.loader.api.FabricLoader;
- 
- import java.io.IOException;
-@@ -11,6 +12,7 @@ import java.nio.file.StandardOpenOption;
- import java.util.Properties;
- 
+ import net.fabricmc.loader.api.ModContainer;
+ import net.fabricmc.loader.api.metadata.CustomValue;
+@@ -17,6 +18,8 @@ import java.util.Properties;
  public class Config {
-+    public static final int PARALLELISM;
+     private static final Logger LOGGER = LogManager.getLogger();
  
++    public static final int PARALLELISM;
++
      static {
          final Properties properties = new Properties();
-@@ -24,6 +26,15 @@ public class Config {
+         final Properties newProperties = new Properties();
+@@ -29,6 +32,15 @@ public class Config {
              }
          }
  
