@@ -19,6 +19,7 @@ public class Config {
     private static final Logger LOGGER = LogManager.getLogger();
 
     public static final int PARALLELISM;
+    public static final boolean USE_STARLIGHT_FORMAT;
 
     static {
         final Properties properties = new Properties();
@@ -41,6 +42,7 @@ public class Config {
         } else {
             PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
         }
+        USE_STARLIGHT_FORMAT = !getBoolean(properties, newProperties, "exp_use_vanilla_format", false);
 
         if (!newProperties.isEmpty()) {
             try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {

@@ -1,5 +1,6 @@
 package ca.spottedleaf.starlight.mixin.common.world;
 
+import ca.spottedleaf.starlight.common.config.Config;
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 import ca.spottedleaf.starlight.common.util.SaveUtil;
 import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
@@ -76,7 +77,11 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             at = @At("RETURN")
     )
     private static void prepareSaveLightHook(ServerLevel world, ChunkAccess chunk, CallbackInfoReturnable<SerializableChunkData> cir) {
-        SaveUtil.prepareSaveLightHook(chunk, cir.getReturnValue());
+        if (Config.USE_STARLIGHT_FORMAT) {
+            SaveUtil.prepareSaveLightHook(chunk, cir.getReturnValue());
+        } else {
+            SaveUtil.prepareSaveVanillaLightHook(world, chunk, cir.getReturnValue());
+        }
     }
 
     @Inject(
@@ -84,7 +89,9 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             at = @At("RETURN")
     )
     private void saveLightHook(CallbackInfoReturnable<CompoundTag> cir) {
-        SaveUtil.saveLightHook((SerializableChunkData) (Object) this, cir.getReturnValue());
+        if (Config.USE_STARLIGHT_FORMAT) {
+            SaveUtil.saveLightHook((SerializableChunkData) (Object) this, cir.getReturnValue());
+        }
     }
 
     @Inject(
@@ -92,7 +99,9 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             at = @At("RETURN")
     )
     private static void prepareLoadLightHook(LevelHeightAccessor levelHeightAccessor, RegistryAccess registryAccess, CompoundTag compoundTag, CallbackInfoReturnable<SerializableChunkData> cir) {
-        SaveUtil.prepareLoadLightHook(levelHeightAccessor, compoundTag, cir.getReturnValue());
+        if (Config.USE_STARLIGHT_FORMAT) {
+            SaveUtil.prepareLoadLightHook(levelHeightAccessor, compoundTag, cir.getReturnValue());
+        }
     }
 
     /**
@@ -104,6 +113,10 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             at = @At("RETURN")
     )
     private void loadLightHook(ServerLevel serverLevel, PoiManager poiManager, RegionStorageInfo regionStorageInfo, ChunkPos chunkPos, CallbackInfoReturnable<ProtoChunk> cir) {
-        SaveUtil.loadLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
+        if (Config.USE_STARLIGHT_FORMAT) {
+            SaveUtil.loadLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
+        } else {
+            SaveUtil.loadVanillaLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
+        }
     }
 }
