@@ -1,11 +1,11 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ishland <ishlandmc@yeah.net>
 Date: Thu, 29 Aug 2024 23:37:55 +0800
-Subject: [PATCH] Port to 1.21.2-pre3
+Subject: [PATCH] Port to 1.21.2-rc1
 
 
 diff --git a/gradle.properties b/gradle.properties
-index 5d644e1..1843f6e 100644
+index 5d644e1..32cea91 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -3,9 +3,8 @@ org.gradle.jvmargs=-Xmx2G
@@ -15,7 +15,7 @@ index 5d644e1..1843f6e 100644
 -minecraft_version=1.21
 -yarn_mappings=1.21+build.1
 -loader_version=0.15.11
-+minecraft_version=1.21.2-pre3
++minecraft_version=1.21.2-rc1
 +loader_version=0.16.7
  # Mod Properties
  mod_version=1.1.3
