@@ -25,7 +25,7 @@ index 5ecceaa..ae29dcf 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
-index 06f6499..8e5ffc4 100644
+index 2cc6689..8edd47e 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
 @@ -16,6 +16,7 @@ import net.minecraft.world.level.chunk.storage.SerializableChunkData;
@@ -36,7 +36,7 @@ index 06f6499..8e5ffc4 100644
  import java.util.ListIterator;
  
  public final class SaveUtil {
-@@ -261,5 +262,57 @@ public final class SaveUtil {
+@@ -262,5 +263,57 @@ public final class SaveUtil {
          into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
      }
  
