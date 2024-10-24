@@ -25,7 +25,7 @@ index 5ecceaa..ae29dcf 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
-index 2cc6689..8edd47e 100644
+index 2cc6689..477671f 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
 @@ -16,6 +16,7 @@ import net.minecraft.world.level.chunk.storage.SerializableChunkData;
@@ -36,7 +36,7 @@ index 2cc6689..8edd47e 100644
  import java.util.ListIterator;
  
  public final class SaveUtil {
-@@ -262,5 +263,57 @@ public final class SaveUtil {
+@@ -262,5 +263,72 @@ public final class SaveUtil {
          into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
      }
  
@@ -76,14 +76,29 @@ index 2cc6689..8edd47e 100644
 +
 +                if (section.blockLight() != null) {
 +                    // this is where our diff is
-+                    blockNibbles[y - minSection] = new SWMRNibbleArray(section.blockLight().getData().clone()); // clone for data safety
++                    blockNibbles[y - minSection] = SWMRNibbleArray.fromVanilla(section.blockLight()); // clone for data safety
 +                }
 +
 +                if (section.skyLight() != null) {
-+                    skyNibbles[y - minSection] = new SWMRNibbleArray(section.skyLight().getData().clone()); // clone for data safety
++                    skyNibbles[y - minSection] = SWMRNibbleArray.fromVanilla(section.skyLight()); // clone for data safety
 +                }
 +            }
 +
++        }
++
++        // workaround vanilla quirk: skylight in sections below sections with initialized skylight is zero
++        {
++            boolean fillWithZero = false;
++            for (int i = skyNibbles.length - 1; i >= 0; i--) {
++                if (!skyNibbles[i].isNullNibbleVisible()) {
++                    fillWithZero = true;
++                    continue;
++                }
++                if (fillWithZero) {
++                    skyNibbles[i].setNonNull();
++                    skyNibbles[i].updateVisible();
++                }
++            }
 +        }
 +
 +        ((ExtendedChunk)into).setBlockNibbles(blockNibbles);
