@@ -41,7 +41,7 @@ index bb77b7d..5ecceaa 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
-index 4343484..898fa09 100644
+index 4343484..aae833b 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 @@ -1,16 +1,24 @@
@@ -69,15 +69,28 @@ index 4343484..898fa09 100644
  import net.minecraft.server.level.TicketType;
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.Level;
-@@ -25,6 +33,7 @@ import java.util.ArrayList;
+@@ -25,7 +33,9 @@ import java.util.ArrayList;
  import java.util.List;
  import java.util.Set;
  import java.util.concurrent.CompletableFuture;
 +import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.Consumer;
++import java.util.function.Function;
  import java.util.function.IntConsumer;
  
-@@ -526,12 +535,85 @@ public final class StarLightInterface {
+ public final class StarLightInterface {
+@@ -517,6 +527,10 @@ public final class StarLightInterface {
+         this.lightQueue.queueChunkLighting(pos, run);
+     }
+ 
++    public CompletableFuture<Void> syncFuture(final int chunkX, final int chunkZ) {
++        return this.lightQueue.getChunkSyncFuture(chunkX, chunkZ).thenApply(Function.identity());
++    }
++
+     public void removeChunkTasks(final ChunkPos pos) {
+         this.lightQueue.removeChunk(pos);
+     }
+@@ -526,12 +540,85 @@ public final class StarLightInterface {
              return;
          }
  
@@ -163,7 +176,7 @@ index 4343484..898fa09 100644
                  if (task.lightTasks != null) {
                      for (final Runnable run : task.lightTasks) {
                          run.run();
-@@ -560,17 +642,13 @@ public final class StarLightInterface {
+@@ -560,17 +647,13 @@ public final class StarLightInterface {
                  }
  
                  task.onComplete.complete(null);
@@ -182,7 +195,7 @@ index 4343484..898fa09 100644
  
          public LightQueue(final StarLightInterface manager) {
              this.manager = manager;
-@@ -583,6 +661,7 @@ public final class StarLightInterface {
+@@ -583,6 +666,7 @@ public final class StarLightInterface {
          public synchronized LightQueue.ChunkTasks queueBlockChange(final BlockPos pos) {
              final ChunkTasks tasks = this.chunkTasks.computeIfAbsent(CoordinateUtils.getChunkKey(pos), ChunkTasks::new);
              tasks.changedPositions.add(pos.immutable());
@@ -190,7 +203,7 @@ index 4343484..898fa09 100644
              return tasks;
          }
  
-@@ -594,6 +673,7 @@ public final class StarLightInterface {
+@@ -594,6 +678,7 @@ public final class StarLightInterface {
              }
              tasks.changedSectionSet[pos.getY() - this.manager.minSection] = Boolean.valueOf(newEmptyValue);
  
@@ -198,7 +211,7 @@ index 4343484..898fa09 100644
              return tasks;
          }
  
-@@ -604,6 +684,7 @@ public final class StarLightInterface {
+@@ -604,6 +689,7 @@ public final class StarLightInterface {
              }
              tasks.lightTasks.add(lightTask);
  
@@ -206,7 +219,7 @@ index 4343484..898fa09 100644
              return tasks;
          }
  
-@@ -616,6 +697,7 @@ public final class StarLightInterface {
+@@ -616,6 +702,7 @@ public final class StarLightInterface {
              }
              queuedEdges.addAll(sections);
  
@@ -214,7 +227,7 @@ index 4343484..898fa09 100644
              return tasks;
          }
  
-@@ -628,6 +710,7 @@ public final class StarLightInterface {
+@@ -628,9 +715,19 @@ public final class StarLightInterface {
              }
              queuedEdges.addAll(sections);
  
@@ -222,7 +235,19 @@ index 4343484..898fa09 100644
              return tasks;
          }
  
-@@ -639,6 +722,7 @@ public final class StarLightInterface {
++        public synchronized CompletableFuture<Void> getChunkSyncFuture(final int chunkX, final int chunkZ) {
++            final ChunkTasks tasks = this.chunkTasks.get(CoordinateUtils.getChunkKey(chunkX, chunkZ));
++            if (tasks == null) {
++                return CompletableFuture.completedFuture(null);
++            } else {
++                return tasks.onComplete;
++            }
++        }
++
+         public void removeChunk(final ChunkPos pos) {
+             final ChunkTasks tasks;
+             synchronized (this) {
+@@ -639,6 +736,7 @@ public final class StarLightInterface {
              if (tasks != null) {
                  tasks.onComplete.complete(null);
              }
@@ -359,7 +384,7 @@ index 0000000..90f1d2d
 +    }
 +}
 diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
-index 867af20..d6f1989 100644
+index 867af20..e3f51af 100644
 --- a/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
 +++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/lightengine/ThreadedLevelLightEngineMixin.java
 @@ -3,11 +3,13 @@ package ca.spottedleaf.starlight.mixin.common.lightengine;
@@ -388,7 +413,7 @@ index 867af20..d6f1989 100644
  import java.util.function.Supplier;
  
  @Mixin(ThreadedLevelLightEngine.class)
-@@ -225,4 +230,26 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
+@@ -225,4 +230,35 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
              }
          });
      }
@@ -413,5 +438,14 @@ index 867af20..d6f1989 100644
 +            }
 +        }
 +        return false;
++    }
++
++    /**
++     * @author ishland
++     * @reason implement waitForPendingTasks hook
++     */
++    @Overwrite
++    public CompletableFuture<?> waitForPendingTasks(int x, int z) {
++        return this.getLightEngine().syncFuture(x, z);
 +    }
  }
