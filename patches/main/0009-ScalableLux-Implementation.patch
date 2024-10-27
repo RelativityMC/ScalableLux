@@ -41,7 +41,7 @@ index bb77b7d..5ecceaa 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
-index 4343484..aae833b 100644
+index 4343484..9aef974 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 @@ -1,16 +1,24 @@
@@ -90,7 +90,7 @@ index 4343484..aae833b 100644
      public void removeChunkTasks(final ChunkPos pos) {
          this.lightQueue.removeChunk(pos);
      }
-@@ -526,12 +540,85 @@ public final class StarLightInterface {
+@@ -526,12 +540,86 @@ public final class StarLightInterface {
              return;
          }
  
@@ -160,6 +160,7 @@ index 4343484..aae833b 100644
 +                        2
 +                );
 +                chunkFutures.put(pos, future);
++                future.whenComplete((unused, throwable) -> this.chunkFutures.remove(pos, future));
 +            }
 +            this.lightQueue.queueDirty = false;
 +        }
@@ -176,7 +177,7 @@ index 4343484..aae833b 100644
                  if (task.lightTasks != null) {
                      for (final Runnable run : task.lightTasks) {
                          run.run();
-@@ -560,17 +647,13 @@ public final class StarLightInterface {
+@@ -560,17 +648,13 @@ public final class StarLightInterface {
                  }
  
                  task.onComplete.complete(null);
@@ -195,7 +196,7 @@ index 4343484..aae833b 100644
  
          public LightQueue(final StarLightInterface manager) {
              this.manager = manager;
-@@ -583,6 +666,7 @@ public final class StarLightInterface {
+@@ -583,6 +667,7 @@ public final class StarLightInterface {
          public synchronized LightQueue.ChunkTasks queueBlockChange(final BlockPos pos) {
              final ChunkTasks tasks = this.chunkTasks.computeIfAbsent(CoordinateUtils.getChunkKey(pos), ChunkTasks::new);
              tasks.changedPositions.add(pos.immutable());
@@ -203,7 +204,7 @@ index 4343484..aae833b 100644
              return tasks;
          }
  
-@@ -594,6 +678,7 @@ public final class StarLightInterface {
+@@ -594,6 +679,7 @@ public final class StarLightInterface {
              }
              tasks.changedSectionSet[pos.getY() - this.manager.minSection] = Boolean.valueOf(newEmptyValue);
  
@@ -211,7 +212,7 @@ index 4343484..aae833b 100644
              return tasks;
          }
  
-@@ -604,6 +689,7 @@ public final class StarLightInterface {
+@@ -604,6 +690,7 @@ public final class StarLightInterface {
              }
              tasks.lightTasks.add(lightTask);
  
@@ -219,7 +220,7 @@ index 4343484..aae833b 100644
              return tasks;
          }
  
-@@ -616,6 +702,7 @@ public final class StarLightInterface {
+@@ -616,6 +703,7 @@ public final class StarLightInterface {
              }
              queuedEdges.addAll(sections);
  
@@ -227,7 +228,7 @@ index 4343484..aae833b 100644
              return tasks;
          }
  
-@@ -628,9 +715,19 @@ public final class StarLightInterface {
+@@ -628,9 +716,19 @@ public final class StarLightInterface {
              }
              queuedEdges.addAll(sections);
  
@@ -247,7 +248,7 @@ index 4343484..aae833b 100644
          public void removeChunk(final ChunkPos pos) {
              final ChunkTasks tasks;
              synchronized (this) {
-@@ -639,6 +736,7 @@ public final class StarLightInterface {
+@@ -639,6 +737,7 @@ public final class StarLightInterface {
              if (tasks != null) {
                  tasks.onComplete.complete(null);
              }
