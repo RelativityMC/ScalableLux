@@ -3,9 +3,11 @@ From: ishland <ishlandmc@yeah.net>
 Date: Sun, 27 Oct 2024 10:13:42 +0800
 Subject: [PATCH] Return skylight always
 
+Apparently when using vanilla format, the saving can occur before emptiness map is initialized.
+This makes vanilla format more reliable.
 
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
-index aae833b..cb1d128 100644
+index 9aef974..3febfc3 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 @@ -127,9 +127,9 @@ public final class StarLightInterface {
