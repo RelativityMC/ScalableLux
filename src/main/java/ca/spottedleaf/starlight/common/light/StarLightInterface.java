@@ -117,7 +117,7 @@ public final class StarLightInterface {
             @Override
             public DataLayer getDataLayerData(final SectionPos pos) {
                 final ChunkAccess chunk = StarLightInterface.this.getAnyChunkNow(pos.getX(), pos.getZ());
-                if (chunk == null || (!StarLightInterface.this.isClientSide && !chunk.isLightCorrect()) || !chunk.getHighestGeneratedStatus().isOrAfter(ChunkStatus.LIGHT)) {
+                if (chunk == null || (!StarLightInterface.this.isClientSide && !chunk.isLightCorrect())) {
                     return null;
                 }
 
@@ -127,9 +127,9 @@ public final class StarLightInterface {
                     return null;
                 }
 
-                if (((ExtendedChunk)chunk).getSkyEmptinessMap() == null) {
-                    return null;
-                }
+//                if (((ExtendedChunk)chunk).getSkyEmptinessMap() == null) {
+//                    return null;
+//                }
 
                 return ((ExtendedChunk)chunk).getSkyNibbles()[sectionY - StarLightInterface.this.minLightSection].toVanillaNibble();
             }
