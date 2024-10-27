@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sun, 27 Oct 2024 10:13:42 +0800
+Subject: [PATCH] Return skylight always
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+index aae833b..cb1d128 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+@@ -127,9 +127,9 @@ public final class StarLightInterface {
+                     return null;
+                 }
+ 
+-                if (((ExtendedChunk)chunk).getSkyEmptinessMap() == null) {
+-                    return null;
+-                }
++//                if (((ExtendedChunk)chunk).getSkyEmptinessMap() == null) {
++//                    return null;
++//                }
+ 
+                 return ((ExtendedChunk)chunk).getSkyNibbles()[sectionY - StarLightInterface.this.minLightSection].toVanillaNibble();
+             }
