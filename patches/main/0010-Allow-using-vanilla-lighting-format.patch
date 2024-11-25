@@ -5,7 +5,7 @@ Subject: [PATCH] Allow using vanilla lighting format
 
 
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
-index 5ecceaa..ae29dcf 100644
+index 5ecceaa..564f8ce 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 @@ -19,6 +19,7 @@ public class Config {
@@ -20,7 +20,7 @@ index 5ecceaa..ae29dcf 100644
          } else {
              PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
          }
-+        USE_STARLIGHT_FORMAT = getBoolean(properties, newProperties, "use_starlight_format", false);
++        USE_STARLIGHT_FORMAT = !getBoolean(properties, newProperties, "exp_use_vanilla_format", false);
  
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
