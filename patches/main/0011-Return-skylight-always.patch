@@ -7,9 +7,18 @@ Apparently when using vanilla format, the saving can occur before emptiness map 
 This makes vanilla format more reliable.
 
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
-index 9aef974..3febfc3 100644
+index 9aef974..c7d3911 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+@@ -117,7 +117,7 @@ public final class StarLightInterface {
+             @Override
+             public DataLayer getDataLayerData(final SectionPos pos) {
+                 final ChunkAccess chunk = StarLightInterface.this.getAnyChunkNow(pos.getX(), pos.getZ());
+-                if (chunk == null || (!StarLightInterface.this.isClientSide && !chunk.isLightCorrect()) || !chunk.getHighestGeneratedStatus().isOrAfter(ChunkStatus.LIGHT)) {
++                if (chunk == null || (!StarLightInterface.this.isClientSide && !chunk.isLightCorrect())) {
+                     return null;
+                 }
+ 
 @@ -127,9 +127,9 @@ public final class StarLightInterface {
                      return null;
                  }
