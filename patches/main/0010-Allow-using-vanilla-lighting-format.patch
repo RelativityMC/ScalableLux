@@ -25,7 +25,7 @@ index 5ecceaa..564f8ce 100644
          if (!newProperties.isEmpty()) {
              try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
-index 2cc6689..31c25fa 100644
+index 2cc6689..66f3c12 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
 @@ -7,15 +7,18 @@ import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
@@ -47,7 +47,7 @@ index 2cc6689..31c25fa 100644
  import java.util.ListIterator;
  
  public final class SaveUtil {
-@@ -66,6 +69,35 @@ public final class SaveUtil {
+@@ -66,6 +69,41 @@ public final class SaveUtil {
          );
      }
  
@@ -69,21 +69,27 @@ index 2cc6689..31c25fa 100644
 +
 +    private static void prepareSaveVanillaLightHookReal(final ServerLevel serverLevel, final ChunkAccess chunk, final SerializableChunkData data) {
 +        // replace existing lighting data
-+        SWMRNibbleArray[] blockNibbles = ((ExtendedChunk) chunk).getBlockNibbles();
-+        SWMRNibbleArray[] skyNibbles = ((ExtendedChunk) chunk).getSkyNibbles();
++        SWMRNibbleArray.SaveState[] blockNibbles = Arrays.stream(((ExtendedChunk) chunk).getBlockNibbles())
++                .map(SWMRNibbleArray::getSaveState)
++                .toArray(SWMRNibbleArray.SaveState[]::new);
++        SWMRNibbleArray.SaveState[] skyNibbles = Arrays.stream(((ExtendedChunk) chunk).getSkyNibbles())
++                .map(SWMRNibbleArray::getSaveState)
++                .toArray(SWMRNibbleArray.SaveState[]::new);
 +
 +        ListIterator<SerializableChunkData.SectionData> iterator = data.sectionData().listIterator(); // mutable in vanilla
 +        while (iterator.hasNext()) {
 +            SerializableChunkData.SectionData sectionData = iterator.next();
 +            int index = sectionData.y() - WorldUtil.getMinLightSection(serverLevel);
-+            iterator.set(new SerializableChunkData.SectionData(sectionData.y(), sectionData.chunkSection(), blockNibbles[index].toVanillaNibble(), skyNibbles[index].toVanillaNibble()));
++            byte[] blockRaw = blockNibbles[index] != null ? blockNibbles[index].data : null;
++            byte[] skyRaw = skyNibbles[index] != null ? skyNibbles[index].data : null;
++            iterator.set(new SerializableChunkData.SectionData(sectionData.y(), sectionData.chunkSection(), blockRaw != null ? new DataLayer(blockRaw) : new DataLayer(), skyRaw != null ? new DataLayer(skyRaw) : new DataLayer()));
 +        }
 +    }
 +
      public static void saveLightHook(final SerializableChunkData data, final CompoundTag nbt) {
          try {
              saveLightHookReal(data, nbt);
-@@ -262,5 +294,70 @@ public final class SaveUtil {
+@@ -262,5 +300,70 @@ public final class SaveUtil {
          into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
      }
  
