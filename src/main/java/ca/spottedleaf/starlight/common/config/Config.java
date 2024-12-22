@@ -42,7 +42,7 @@ public class Config {
         } else {
             PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
         }
-        USE_STARLIGHT_FORMAT = !getBoolean(properties, newProperties, "exp_use_vanilla_format", false);
+        USE_STARLIGHT_FORMAT = getBoolean(properties, newProperties, "use_starlight_format", false);
 
         if (!newProperties.isEmpty()) {
             try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
