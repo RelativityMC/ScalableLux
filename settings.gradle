@@ -11,7 +11,7 @@ pluginManagement {
 
 rootProject.name = "ScalableLux"
 
-includeBuild('../FlowSched') {
+includeBuild('FlowSched') {
     dependencySubstitution {
         substitute module('com.ishland.flowsched:flowsched') using project(':')
     }
