@@ -22,7 +22,7 @@ def getGitCommit = { ->
     exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'
         standardOutput = stdout
-        workingDir = ".."
+//        workingDir = ".."
     }
     return stdout.toString().trim()
 }

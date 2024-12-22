@@ -1,59 +1,34 @@
-Starlight (Fabric)
-==
-Fabric mod for completely rewriting the vanilla light engine.
+# ScalableLux
+A Fabric mod based on Starlight that improves the performance of light updates in Minecraft.
 
-## Future updates past 1.20
-Please see: https://gist.github.com/Spottedleaf/6cc1acdd03a9b7ac34699bf5e8f1b85c
-This project will not receive further updates for the foreseeable future.
+## Why does this fork exist?
+- Starlight is no longer maintained as a mod [since Mar 8, 2024](https://github.com/PaperMC/Starlight/commit/cca03d62da48e876ac79196bad16864e8a96bbeb).
+- The performance of vanilla lighting engine is still a bottleneck for high-performance chunk generation.
+- The base Starlight is still [100% faster than vanilla](<https://gist.github.com/Spottedleaf/6cc1acdd03a9b7ac34699bf5e8f1b85c#light-engine-performance-changes-in-120-from-vanilla>),
+  allowing the chunk system to scale beyond 24 threads.
+- Starlight's "stateless" design allows for parallel light updates, further widening the performance gap.
+  It is still [rather important for dedicated servers with more players to stress chunk generation](https://gist.github.com/Spottedleaf/6cc1acdd03a9b7ac34699bf5e8f1b85c#is-starlight-obsolete).
+  Therefore, it is still important for Fabric or other modded servers with plenty of players. 
 
-## Download
-[CurseForge (Fabric)](https://www.curseforge.com/minecraft/mc-mods/starlight)
-[Modrinth (Fabric)](https://modrinth.com/mod/starlight)
+## What does this fork do?
+- Contains all the performance improvements from Starlight with additional bug fixes.
+- Optionally allows for parallel light updates, bringing significant performance improvement in high-speed
+  world generation and heavy light updates scenarios.
 
-## Contact
-[Discord](https://discord.gg/tuinity)
+## Building and setting up
 
-## Results
-~~The graph below shows how much time the light engine was active while generating 10404 chunks:~~
-See "Notice about invalid gen test results" in [TECHNICAL_DETAILS.md](TECHNICAL_DETAILS.md) 
-for why there is no 1.20 data for this test.
+#### Initial setup
+Run the following commands in the root directory:
 
-Below is a graph detailing how long light updates took for breaking/placing
-a block on a large platform at y = 254 down to a large platform at y = 0:
-![Block update at height graph](https://i.imgur.com/ZQx7Ek0.png)
-- Tested via [LightBench](https://github.com/Spottedleaf/lightbench) on 1.20-rc1
-- World is just a flat world with bedrock at y = 0 and grass at y = 254
-- CPU: Ryzen 9 7950X
+```
+git submodule update --init
+./build.sh up
+./build.sh patch
+```
 
-Below is a graph detailing light update times for a simple glowstone
-place/break:
-![Simple glowstone block update](https://i.imgur.com/MrA2PQk.png)
-- Tested via [LightBench](https://github.com/Spottedleaf/lightbench) on 1.20-rc1
-- World is just a flat world with bedrock at y = 0 and grass at y = 254
-- CPU: Ryzen 9 7950X
-- Tested breaking and placing the glowstone on the bedrock platform,
-  where skylight could not interfere with the test.
+#### Creating a patch
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more detailed information.
 
-The results indicate that Starlight is faster for light propagation, but 
-the absolute times indicate that it is unlikely to affect FPS in any
-situation on the client.
 
-## Purpose
-Currently, Starlight's light section management is depended on for both Paper's rewrite
-of the chunk system (people in the modding space call this "TACS") and Folia's additional
-changes to that system. In Starlight, light sections are tied directly to ChunkAccess objects.
-
-The light section management prevents most bugs (including performance ones)
-involving missing/absent light sections, as Starlight assumes that no updates
-are possible unless the chunk exists. This is why there are basically zero performance or bug related
-issues with the light section management in Starlight. 
-
-This difference in light section management allows Paper's rewrite of the chunk system (which is designed
-as a solid base for [Folia](https://github.com/PaperMC/Folia) to build on, which adds regionized multithreading
-to the dedicated server) to greatly simplify and optimize its chunk unload/load logic as it no longer needs to
-consider any light engine state as there is no light engine state.
-
-The "stateless" property of Starlight allows the chunk system to run light updates / generation
-in parallel provided the scheduling is done right, see patch "Increase parallelism for neighbour writing chunk statuses"
-in 1.19 Folia. This is critical to allowing the chunk system to scale beyond 10 worker threads,
-which is important for dedicated servers with more players to stress chunk generation.
+#### Compiling
+Use the command `./build.sh build`. Compiled jars will be placed under `Starlight-Patched/build/libs/`.
