@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Tue, 31 Dec 2024 21:14:16 +0800
+Subject: [PATCH] Set Version
+
+
+diff --git a/gradle.properties b/gradle.properties
+index da2822a..8216a2b 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -7,6 +7,6 @@ loom.platform=neoforge
+ minecraft_version=1.21.1
+ forge_version=21.1.92
+ # Mod Properties
+-mod_version=0.1.0
++mod_version=0.1.0+beta.1
+ maven_group=ca.spottedleaf.starlight
+ archives_base_name=ScalableLux

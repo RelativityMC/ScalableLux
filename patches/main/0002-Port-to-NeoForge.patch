@@ -5,7 +5,7 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index ed6d51b..5628736 100644
+index ed6d51b..99b2061 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
@@ -15,8 +15,12 @@ index ed6d51b..5628736 100644
      id 'maven-publish'
      id 'com.github.johnrengelman.shadow' version '8.1.1'
  }
-@@ -31,12 +31,16 @@ archivesBaseName = project.archives_base_name
- version = project.mod_version + "+fabric." + getGitCommit()
+@@ -28,15 +28,19 @@ def getGitCommit = { ->
+ }
+ 
+ archivesBaseName = project.archives_base_name
+-version = project.mod_version + "+fabric." + getGitCommit()
++version = project.mod_version + "+neoforge." + getGitCommit()
  group = project.maven_group
  
 +repositories {
