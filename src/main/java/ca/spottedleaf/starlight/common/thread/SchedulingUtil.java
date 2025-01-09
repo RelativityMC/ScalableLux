@@ -14,7 +14,7 @@ public class SchedulingUtil {
                 lockTokens.add(new LockTokenImpl(ownerTag, CoordinateUtils.getChunkKey(x + i, z + j)));
             }
         }
-        final SimpleTask simpleTask = new SimpleTask(task, lockTokens.toArray(LockToken[]::new), 240);
+        final SimpleTask simpleTask = new SimpleTask(task, lockTokens.toArray(LockToken[]::new), 60);
         GlobalExecutors.prioritizedScheduler.schedule(simpleTask);
     }
 
