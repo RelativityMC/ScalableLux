@@ -99,7 +99,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         final int references = this.chunksBeingWorkedOn.addTo(key, 1);
         if (references == 0) {
             final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-            world.getChunkSource().addRegionTicket(StarLightInterface.CHUNK_WORK_TICKET, pos, 0, pos);
+            world.getChunkSource().addTicketWithRadius(StarLightInterface.CHUNK_WORK_TICKET, pos, 0);
         }
 
         updateFuture.onComplete.thenAcceptAsync((final Void ignore) -> {
@@ -107,7 +107,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
             if (newReferences == 1) {
                 this.chunksBeingWorkedOn.remove(key);
                 final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-                world.getChunkSource().removeRegionTicket(StarLightInterface.CHUNK_WORK_TICKET, pos, 0, pos);
+                world.getChunkSource().removeTicketWithRadius(StarLightInterface.CHUNK_WORK_TICKET, pos, 0);
             } else {
                 this.chunksBeingWorkedOn.put(key, newReferences - 1);
             }
