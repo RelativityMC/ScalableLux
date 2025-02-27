@@ -136,15 +136,15 @@ public final class SaveUtil {
             tag.putBoolean("isLightOn", false);
         }
         // diff end - store our tag for whether light data is init'd
-        ChunkStatus status = ChunkStatus.byName(tag.getString("Status"));
+        ChunkStatus status = data.chunkStatus();
 
         CompoundTag[] sections = new CompoundTag[maxSection - minSection + 1];
 
-        ListTag sectionsStored = tag.getList("sections", 10);
+        ListTag sectionsStored = tag.getList("sections").get();
 
         for (int i = 0; i < sectionsStored.size(); ++i) {
-            CompoundTag sectionStored = sectionsStored.getCompound(i);
-            int k = sectionStored.getByte("Y");
+            CompoundTag sectionStored = sectionsStored.getCompound(i).get();
+            int k = sectionStored.getByte("Y").get();
 
             // strip light data
             sectionStored.remove("BlockLight");
@@ -227,32 +227,32 @@ public final class SaveUtil {
         SWMRNibbleArray.SaveState[] blockLight = StarLightEngine.getFilledEmptySaveState(world);
         SWMRNibbleArray.SaveState[] skyLight = StarLightEngine.getFilledEmptySaveState(world);
 
-        boolean lit = tag.get("isLightOn") != null && tag.getInt(STARLIGHT_VERSION_TAG) == STARLIGHT_LIGHT_VERSION;
+        boolean lit = tag.get("isLightOn") != null && tag.getIntOr(STARLIGHT_VERSION_TAG, Integer.MIN_VALUE) == STARLIGHT_LIGHT_VERSION;
         // not enough context: assumes always reads skylight
         ChunkStatus status = data.chunkStatus();
 
         if (lit && status.isOrAfter(ChunkStatus.LIGHT)) {
-            ListTag sections = tag.getList("sections", 10);
+            ListTag sections = tag.getList("sections").get();
 
             for (int i = 0; i < sections.size(); ++i) {
-                CompoundTag sectionData = sections.getCompound(i);
-                int y = sectionData.getByte("Y");
+                CompoundTag sectionData = sections.getCompound(i).get();
+                int y = sectionData.getByte("Y").get();
 
-                if (sectionData.contains("BlockLight", 7)) {
-                    blockLight[y - minSection] = new SWMRNibbleArray.SaveState(sectionData.getByteArray("BlockLight").clone(), sectionData.getInt(BLOCKLIGHT_STATE_TAG)); // clone for data safety
+                if (sectionData.contains("BlockLight")) {
+                    blockLight[y - minSection] = new SWMRNibbleArray.SaveState(sectionData.getByteArray("BlockLight").get().clone(), sectionData.getInt(BLOCKLIGHT_STATE_TAG).get()); // clone for data safety
                 } else {
-                    blockLight[y - minSection] = new SWMRNibbleArray.SaveState(null, sectionData.getInt(BLOCKLIGHT_STATE_TAG));
+                    blockLight[y - minSection] = new SWMRNibbleArray.SaveState(null, sectionData.getInt(BLOCKLIGHT_STATE_TAG).get());
                 }
 
-                if (sectionData.contains("SkyLight", 7)) {
+                if (sectionData.contains("SkyLight")) {
                     // we store under the same key so mod programs editing nbt
                     // can still read the data, hopefully.
                     // however, for compatibility we store chunks as unlit so vanilla
                     // is forced to re-light them if it encounters our data. It's too much of a burden
                     // to try and maintain compatibility with a broken and inferior skylight management system.
-                    skyLight[y - minSection] = new SWMRNibbleArray.SaveState(sectionData.getByteArray("SkyLight").clone(), sectionData.getInt(SKYLIGHT_STATE_TAG)); // clone for data safety
+                    skyLight[y - minSection] = new SWMRNibbleArray.SaveState(sectionData.getByteArray("SkyLight").get().clone(), sectionData.getInt(SKYLIGHT_STATE_TAG).get()); // clone for data safety
                 } else {
-                    skyLight[y - minSection] = new SWMRNibbleArray.SaveState(null, sectionData.getInt(SKYLIGHT_STATE_TAG));
+                    skyLight[y - minSection] = new SWMRNibbleArray.SaveState(null, sectionData.getInt(SKYLIGHT_STATE_TAG).get());
                 }
             }
         }
