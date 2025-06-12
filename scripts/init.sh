@@ -8,7 +8,7 @@ basedir=$(pwd -P)
 cd - || exit
 
 upstreamDir="ScalableLux"
-upstreamBranch="ver/1.21.5"
+upstreamBranch="ver/1.21.6"
 
 function bashColor() {
   if [ "$2" ]; then
