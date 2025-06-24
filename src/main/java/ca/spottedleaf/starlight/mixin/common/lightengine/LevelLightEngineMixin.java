@@ -19,6 +19,7 @@ import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.lighting.LayerLightEventListener;
+import net.minecraft.world.level.lighting.LayerLightSectionStorage;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.lighting.LightEngine;
 import net.minecraft.world.level.lighting.LightEventListener;
@@ -167,6 +168,19 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     public String getDebugData(final LightLayer lightType, final SectionPos pos) {
         // TODO would be nice to make use of this
         return "n/a";
+    }
+
+    /**
+     * @reason Route to new light engine
+     * @author ishland
+     */
+    @Overwrite
+    public LayerLightSectionStorage.SectionType getDebugSectionType(LightLayer lightLayer, SectionPos sectionPos) {
+        if (lightLayer == LightLayer.BLOCK) {
+            return this.lightEngine.hasSectionBlockLight(sectionPos) ? LayerLightSectionStorage.SectionType.LIGHT_AND_DATA : LayerLightSectionStorage.SectionType.EMPTY;
+        } else {
+            return this.lightEngine.hasSectionSkyLight(sectionPos) ? LayerLightSectionStorage.SectionType.LIGHT_AND_DATA : LayerLightSectionStorage.SectionType.EMPTY;
+        }
     }
 
     /**
