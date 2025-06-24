@@ -314,6 +314,16 @@ public final class StarLightInterface {
         return this.blockReader;
     }
 
+    public boolean hasSectionSkyLight(SectionPos sectionPos) {
+        final ChunkAccess chunk = this.getAnyChunkNow(sectionPos.x(), sectionPos.z());
+        return chunk != null && !((ExtendedChunk) chunk).getSkyNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
+    }
+
+    public boolean hasSectionBlockLight(SectionPos sectionPos) {
+        final ChunkAccess chunk = this.getAnyChunkNow(sectionPos.x(), sectionPos.z());
+        return chunk != null && !((ExtendedChunk) chunk).getBlockNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
+    }
+
     public boolean isClientSide() {
         return this.isClientSide;
     }
