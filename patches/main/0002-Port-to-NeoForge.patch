@@ -5,7 +5,7 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index 22e31b9..710d09e 100644
+index 22e31b9..a9fa0e4 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
@@ -15,7 +15,7 @@ index 22e31b9..710d09e 100644
      id 'maven-publish'
      id 'com.github.johnrengelman.shadow' version '8.1.1'
  }
-@@ -28,15 +28,27 @@ def getGitCommit = { ->
+@@ -28,15 +28,19 @@ def getGitCommit = { ->
  }
  
  archivesBaseName = project.archives_base_name
@@ -25,14 +25,6 @@ index 22e31b9..710d09e 100644
  
 +repositories {
 +    maven { url "https://maven.neoforged.net/releases/" }
-+    maven {
-+        name = 'Maven for PR #2297' // https://github.com/neoforged/NeoForge/pull/2297
-+        url = 'https://prmaven.neoforged.net/NeoForge/pr2297'
-+        content {
-+            includeModule('net.neoforged', 'neoforge')
-+            includeModule('net.neoforged', 'testframework')
-+        }
-+    }
 +}
 +
  dependencies {
@@ -45,7 +37,7 @@ index 22e31b9..710d09e 100644
  
      // Fabric API. This is technically optional, but you probably want it anyway.
      //modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-@@ -47,14 +59,14 @@ dependencies {
+@@ -47,14 +51,14 @@ dependencies {
      shadowInclude("com.ishland.flowsched:flowsched") {
          transitive false
      }
@@ -63,7 +55,7 @@ index 22e31b9..710d09e 100644
      }
  }
  
-@@ -78,8 +90,8 @@ java {
+@@ -78,8 +82,8 @@ java {
      // If you remove this line, sources will not be generated.
      withSourcesJar()
  
@@ -74,7 +66,7 @@ index 22e31b9..710d09e 100644
  }
  jar {
      from "LICENSE"
-@@ -96,6 +108,7 @@ remapJar {
+@@ -96,6 +100,7 @@ remapJar {
      input = shadowJar.archiveFile
      archiveFileName = shadowJar.archiveFileName.get().replaceAll("-dev\\.jar\$", ".jar")
      addNestedDependencies = true
@@ -83,7 +75,7 @@ index 22e31b9..710d09e 100644
  }
  
 diff --git a/gradle.properties b/gradle.properties
-index d9ac978..5864c4e 100644
+index 8c3247f..9343889 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -1,10 +1,11 @@
@@ -93,12 +85,12 @@ index d9ac978..5864c4e 100644
 +loom.platform=neoforge
  # Fabric Properties
  # check these on https://modmuss50.me/fabric.html
--minecraft_version=1.21.6-rc1
+-minecraft_version=1.21.7-rc1
 -loader_version=0.16.14
-+minecraft_version=1.21.6-pre4
-+forge_version=21.5.0-alpha.1.21.6-pre4.20250611.162051
++minecraft_version=1.21.8
++forge_version=21.8.0-beta
  # Mod Properties
- mod_version=0.1.4
+ mod_version=0.1.5
  maven_group=ca.spottedleaf.starlight
 diff --git a/settings.gradle b/settings.gradle
 index 72ebf6e..a2bc74d 100644
