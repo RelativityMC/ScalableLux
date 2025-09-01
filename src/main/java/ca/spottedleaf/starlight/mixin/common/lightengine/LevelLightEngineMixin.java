@@ -8,6 +8,7 @@ import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
 import ca.spottedleaf.starlight.common.util.CoordinateUtils;
 import ca.spottedleaf.starlight.common.util.WorldUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
@@ -110,13 +111,26 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
         this.lightEngine.sectionChange(pos, notReady);
     }
 
+    @Unique
+    protected final LongOpenHashSet scalablelux$lightingEnabledChunks = new LongOpenHashSet();
+
     /**
-     * @reason Avoid messing with the vanilla light engine state
-     * @author Spottedleaf
+     * @reason Run compatibolity hook
+     * @author ishland
      */
     @Overwrite
     public void setLightEnabled(final ChunkPos pos, final boolean lightEnabled) {
-        // not invoked by the client
+        // not invoked by the client - Spottedleaf
+        // surely not - ishland
+
+        // store state for implementation of lightOnInColumn()
+        // needed for proper culling of chunks in the client
+        final long key = pos.toLong();
+        if (lightEnabled) {
+            this.scalablelux$lightingEnabledChunks.add(key);
+        } else {
+            this.scalablelux$lightingEnabledChunks.remove(key);
+        }
     }
 
     /**
@@ -195,7 +209,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     @Overwrite
     public boolean lightOnInColumn(final long pos) {
         final long key = CoordinateUtils.getChunkKey(SectionPos.x(pos), SectionPos.z(pos));
-        return (!this.lightEngine.hasBlockLight() || this.blockLightMap.get(key) != null) && (!this.lightEngine.hasSkyLight() || this.skyLightMap.get(key) != null);
+        return this.scalablelux$lightingEnabledChunks.contains(key) || (!this.lightEngine.hasBlockLight() || this.blockLightMap.get(key) != null) && (!this.lightEngine.hasSkyLight() || this.skyLightMap.get(key) != null);
     }
 
     @Unique
