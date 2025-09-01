@@ -1,9 +1,14 @@
 package ca.spottedleaf.starlight.mixin.client.multiplayer;
 
 import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.CommonListenerCookie;
 import net.minecraft.core.SectionPos;
+import net.minecraft.network.Connection;
+import net.minecraft.network.TickablePacketListener;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundForgetLevelChunkPacket;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
@@ -23,7 +28,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ClientPacketListener.class, priority = 1001)
-public abstract class ClientPacketListenerMixin implements ClientGamePacketListener {
+public abstract class ClientPacketListenerMixin extends ClientCommonPacketListenerImpl implements ClientGamePacketListener, TickablePacketListener {
+
+    protected ClientPacketListenerMixin(Minecraft minecraft, Connection connection, CommonListenerCookie commonListenerCookie) {
+        super(minecraft, connection, commonListenerCookie);
+    }
 
     /*
       The call behaviors in the packet handler are much more clear about how they should affect the light engine,
@@ -132,5 +141,7 @@ public abstract class ClientPacketListenerMixin implements ClientGamePacketListe
 
         // we need this for the update chunk status call, so that it can tell starlight what sections are empty and such
         this.enableChunkLight(chunk, chunkX, chunkZ);
+
+        this.minecraft.levelRenderer.onChunkReadyToRender(chunk.getPos());
     }
 }
