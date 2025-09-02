@@ -11,6 +11,7 @@ import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
@@ -98,7 +99,7 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             method = "parse",
             at = @At("RETURN")
     )
-    private static void prepareLoadLightHook(LevelHeightAccessor levelHeightAccessor, RegistryAccess registryAccess, CompoundTag compoundTag, CallbackInfoReturnable<SerializableChunkData> cir) {
+    private static void prepareLoadLightHook(LevelHeightAccessor levelHeightAccessor, PalettedContainerFactory palettedContainerFactory, CompoundTag compoundTag, CallbackInfoReturnable<SerializableChunkData> cir) {
         if (Config.USE_STARLIGHT_FORMAT) {
             SaveUtil.prepareLoadLightHook(levelHeightAccessor, compoundTag, cir.getReturnValue());
         }

@@ -9,6 +9,7 @@ import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.levelgen.blending.BlendingData;
 import net.minecraft.world.level.lighting.ChunkSkyLightSources;
@@ -89,9 +90,7 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
                     value = "RETURN"
             )
     )
-    private void nullSources(ChunkPos chunkPos, UpgradeData upgradeData, LevelHeightAccessor levelHeightAccessor,
-                             Registry registry, long l, LevelChunkSection[] levelChunkSections, BlendingData blendingData,
-                             CallbackInfo ci) {
+    private void nullSources(ChunkPos chunkPos, UpgradeData upgradeData, LevelHeightAccessor levelHeightAccessor, PalettedContainerFactory palettedContainerFactory, long l, LevelChunkSection[] levelChunkSections, BlendingData blendingData, CallbackInfo ci) {
         this.skyLightSources = null;
         if (!((Object)this instanceof ImposterProtoChunk)) {
             this.setBlockNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
