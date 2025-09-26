@@ -23,6 +23,7 @@ public final class SWMRNibbleArray {
     protected static final int INIT_STATE_HIDDEN = 3; // initialised, but conversion to Vanilla data should be treated as if NULL
 
     public static final int ARRAY_SIZE = 16 * 16 * 16 / (8/4); // blocks / bytes per block
+    private static final int POOL_MAX_SIZE = 128; // more than enough for most cases
     // this allows us to maintain only 1 byte array when we're not updating
     static final ThreadLocal<ArrayDeque<byte[]>> WORKING_BYTES_POOL = ThreadLocal.withInitial(ArrayDeque::new);
 
@@ -36,7 +37,9 @@ public final class SWMRNibbleArray {
     }
 
     private static void freeBytes(final byte[] bytes) {
-        WORKING_BYTES_POOL.get().addFirst(bytes);
+        ArrayDeque<byte[]> pool = WORKING_BYTES_POOL.get();
+        if (pool.size() >= POOL_MAX_SIZE) return;
+        pool.addFirst(bytes);
     }
 
     public static SWMRNibbleArray fromVanilla(final DataLayer nibble) {
