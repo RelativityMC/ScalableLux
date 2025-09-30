@@ -5,13 +5,13 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index 22e31b9..a9fa0e4 100644
+index 812f429..5edf3ff 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
  plugins {
--    id 'fabric-loom' version '1.10-SNAPSHOT'
-+    id 'dev.architectury.loom' version '1.10-SNAPSHOT'
+-    id 'fabric-loom' version '1.11-SNAPSHOT'
++    id 'dev.architectury.loom' version '1.11-SNAPSHOT'
      id 'maven-publish'
      id 'com.github.johnrengelman.shadow' version '8.1.1'
  }
@@ -75,7 +75,7 @@ index 22e31b9..a9fa0e4 100644
  }
  
 diff --git a/gradle.properties b/gradle.properties
-index 923756c..64b6b20 100644
+index 0586a73..653ebba 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -1,10 +1,11 @@
@@ -85,11 +85,12 @@ index 923756c..64b6b20 100644
 +loom.platform=neoforge
  # Fabric Properties
  # check these on https://modmuss50.me/fabric.html
- minecraft_version=1.21.8
--loader_version=0.16.14
-+forge_version=21.8.0-beta
+-minecraft_version=1.21.9-rc1
+-loader_version=0.17.2
++minecraft_version=1.21.9
++forge_version=21.9.0-beta
  # Mod Properties
- mod_version=0.1.5.1
+ mod_version=0.1.6
  maven_group=ca.spottedleaf.starlight
 diff --git a/settings.gradle b/settings.gradle
 index 72ebf6e..a2bc74d 100644
@@ -261,7 +262,7 @@ index a2d4826..68526da 100644
              if (emittedLight <= this.getLightLevel(pos.getX(), pos.getY(), pos.getZ())) {
                  // some other source is brighter
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
-index e111453..4b80890 100644
+index 7fbc6af..8a397d4 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
 @@ -112,6 +112,7 @@ public abstract class StarLightEngine {

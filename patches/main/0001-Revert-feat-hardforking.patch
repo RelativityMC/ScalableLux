@@ -14,13 +14,6 @@ index 8132eca..0000000
 -[submodule "FlowSched"]
 -	path = FlowSched
 -	url = https://github.com/RelativityMC/FlowSched.git
-diff --git a/FlowSched b/FlowSched
-deleted file mode 160000
-index 5210232..0000000
---- a/FlowSched
-+++ /dev/null
-@@ -1 +0,0 @@
--Subproject commit 5210232ae17375c663aca4ea90b0f3528c55ca68
 diff --git a/README.md b/README.md
 index 5066ce5..a2c8095 100644
 --- a/README.md
@@ -120,7 +113,7 @@ index 5066ce5..a2c8095 100644
 +in 1.19 Folia. This is critical to allowing the chunk system to scale beyond 10 worker threads,
 +which is important for dedicated servers with more players to stress chunk generation.
 diff --git a/build.gradle b/build.gradle
-index b54942f..22e31b9 100644
+index 2692ecd..812f429 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -22,7 +22,7 @@ def getGitCommit = { ->
