@@ -13,7 +13,6 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
 import org.slf4j.Logger;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -39,19 +38,27 @@ public final class SaveUtil {
 
     private static void prepareSaveVanillaLightHookReal(final ServerLevel serverLevel, final ChunkAccess chunk, final SerializableChunkData data) {
         // replace existing lighting data
-        SWMRNibbleArray.SaveState[] blockNibbles = Arrays.stream(((ExtendedChunk) chunk).getBlockNibbles())
-                .map(SWMRNibbleArray::getSaveState)
-                .toArray(SWMRNibbleArray.SaveState[]::new);
-        SWMRNibbleArray.SaveState[] skyNibbles = Arrays.stream(((ExtendedChunk) chunk).getSkyNibbles())
-                .map(SWMRNibbleArray::getSaveState)
-                .toArray(SWMRNibbleArray.SaveState[]::new);
+        SWMRNibbleArray.SaveState[] blockNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).getBlockNibbles().length];
+        SWMRNibbleArray.SaveState[] skyNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).getSkyNibbles().length];
+        {
+            SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).getBlockNibbles();
+            for (int i = 0, nibblesLength = nibbles.length; i < nibblesLength; i++) {
+                blockNibbleSaveStates[i] = nibbles[i].getSaveState();
+            }
+        }
+        {
+            SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).getSkyNibbles();
+            for (int i = 0, nibblesLength = nibbles.length; i < nibblesLength; i++) {
+                skyNibbleSaveStates[i] = nibbles[i].getSaveState();
+            }
+        }
 
         ListIterator<SerializableChunkData.SectionData> iterator = data.sectionData().listIterator(); // mutable in vanilla
         while (iterator.hasNext()) {
             SerializableChunkData.SectionData sectionData = iterator.next();
             int index = sectionData.y() - WorldUtil.getMinLightSection(serverLevel);
-            byte[] blockRaw = blockNibbles[index] != null ? blockNibbles[index].data : null;
-            byte[] skyRaw = skyNibbles[index] != null ? skyNibbles[index].data : null;
+            byte[] blockRaw = blockNibbleSaveStates[index] != null ? blockNibbleSaveStates[index].data : null;
+            byte[] skyRaw = skyNibbleSaveStates[index] != null ? skyNibbleSaveStates[index].data : null;
             iterator.set(new SerializableChunkData.SectionData(sectionData.y(), sectionData.chunkSection(), blockRaw != null ? new DataLayer(blockRaw) : new DataLayer(), skyRaw != null ? new DataLayer(skyRaw) : new DataLayer()));
         }
     }
