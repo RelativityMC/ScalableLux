@@ -1,23 +1,22 @@
 package ca.spottedleaf.starlight.mixin.common.world;
 
-import ca.spottedleaf.starlight.common.config.Config;
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 import ca.spottedleaf.starlight.common.util.SaveUtil;
 import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.PalettedContainerFactory;
+import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
+import net.minecraft.world.level.lighting.LayerLightEventListener;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(SerializableChunkData.class)
@@ -61,5 +60,10 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
     )
     private void loadLightHook(ServerLevel serverLevel, PoiManager poiManager, RegionStorageInfo regionStorageInfo, ChunkPos chunkPos, CallbackInfoReturnable<ProtoChunk> cir) {
         SaveUtil.loadVanillaLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
+    }
+
+    @Redirect(method = "copyOf", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LayerLightEventListener;getDataLayerData(Lnet/minecraft/core/SectionPos;)Lnet/minecraft/world/level/chunk/DataLayer;"), require = 2)
+    private static DataLayer noopVanillaLightRead(LayerLightEventListener instance, SectionPos sectionPos) {
+        return null;
     }
 }
