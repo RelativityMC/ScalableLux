@@ -19,7 +19,6 @@ public class Config {
     private static final Logger LOGGER = LogManager.getLogger();
 
     public static final int PARALLELISM;
-    public static final boolean USE_STARLIGHT_FORMAT;
 
     static {
         final Properties properties = new Properties();
@@ -41,11 +40,6 @@ public class Config {
             PARALLELISM = parallelism;
         } else {
             PARALLELISM = Math.max(1, Runtime.getRuntime().availableProcessors() / 3);
-        }
-        USE_STARLIGHT_FORMAT = Boolean.getBoolean("scalablelux.useStarlightFormat");
-
-        if (USE_STARLIGHT_FORMAT) {
-            LOGGER.fatal("The Starlight format is now terminally deprecated and will be removed in a future version of ScalableLux. ");
         }
 
         if (!newProperties.isEmpty()) {
