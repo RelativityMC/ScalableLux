@@ -59,7 +59,7 @@ public final class SaveUtil {
             int index = sectionData.y() - WorldUtil.getMinLightSection(serverLevel);
             byte[] blockRaw = blockNibbleSaveStates[index] != null ? blockNibbleSaveStates[index].data : null;
             byte[] skyRaw = skyNibbleSaveStates[index] != null ? skyNibbleSaveStates[index].data : null;
-            iterator.set(new SerializableChunkData.SectionData(sectionData.y(), sectionData.chunkSection(), blockRaw != null ? new DataLayer(blockRaw) : new DataLayer(), skyRaw != null ? new DataLayer(skyRaw) : new DataLayer()));
+            iterator.set(new SerializableChunkData.SectionData(sectionData.y(), sectionData.chunkSection(), blockRaw != null ? new DataLayer(blockRaw) : null, skyRaw != null ? new DataLayer(skyRaw) : null));
         }
     }
 
