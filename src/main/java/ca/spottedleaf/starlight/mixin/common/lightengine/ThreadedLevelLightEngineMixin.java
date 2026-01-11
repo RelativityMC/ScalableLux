@@ -109,7 +109,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         updateFuture.onComplete.thenAcceptAsync((final Void ignore) -> {
             synchronized (this.chunksBeingWorkedOn) {
                 final int newReferences = this.chunksBeingWorkedOn.addTo(key, -1);
-                if (newReferences == 0) {
+                if (newReferences == 1) {
                     this.chunksBeingWorkedOn.remove(key);
 
                     // ticket rm inside synchronized to avoid a race
