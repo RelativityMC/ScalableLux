@@ -32,6 +32,7 @@ import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Mixin(ThreadedLevelLightEngine.class)
@@ -67,7 +68,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
             return;
         }
 
-        if (ChunkSystemHooks.isNonFullTicket() && center.getPersistedStatus() != ChunkStatus.FULL) { // TODO check if getHighestGeneratedStatus() is a better idea
+        if (!ChunkSystemHooks.isNonFullTicket() && center.getPersistedStatus() != ChunkStatus.FULL) { // TODO check if getHighestGeneratedStatus() is a better idea
             // do not keep chunk loaded, we are probably in a gen thread
             // if we proceed to add a ticket the chunk will be loaded, which is not what we want (avoid cascading gen)
             runnable.get();
@@ -106,7 +107,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
             ChunkSystemHooks.addLightTicket(world, pos);
         }
 
-        updateFuture.onComplete.thenAcceptAsync((final Void ignore) -> {
+        Consumer<Void> cleanup = (final Void ignore) -> {
             synchronized (this.chunksBeingWorkedOn) {
                 final int newReferences = this.chunksBeingWorkedOn.addTo(key, -1);
                 if (newReferences == 1) {
@@ -117,7 +118,14 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
                     ChunkSystemHooks.removeLightTicket(world, pos);
                 }
             }
-        }, world.getChunkSource().chunkMap.mainThreadExecutor).whenComplete((final Void ignore, final Throwable thr) -> {
+        };
+        CompletableFuture<Void> future;
+        if (ChunkSystemHooks.isTicketThreadSafe()) {
+            future = updateFuture.onComplete.thenAccept(cleanup);
+        } else {
+            future = updateFuture.onComplete.thenAcceptAsync(cleanup, world.getChunkSource().chunkMap.mainThreadExecutor);
+        }
+        future.whenComplete((final Void ignore, final Throwable thr) -> {
             if (thr != null) {
                 LOGGER.error("Failed to remove ticket level for post chunk task " + new ChunkPos(chunkX, chunkZ), thr);
             }
