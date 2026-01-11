@@ -3,6 +3,7 @@ package ca.spottedleaf.starlight.mixin.common.lightengine;
 import ca.spottedleaf.starlight.common.light.StarLightEngine;
 import ca.spottedleaf.starlight.common.light.StarLightInterface;
 import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
+import ca.spottedleaf.starlight.common.integration.v0.ChunkSystemHooks;
 import ca.spottedleaf.starlight.common.thread.GlobalExecutors;
 import ca.spottedleaf.starlight.common.util.CoordinateUtils;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -66,14 +67,14 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
             return;
         }
 
-        if (center.getPersistedStatus() != ChunkStatus.FULL) { // TODO check if getHighestGeneratedStatus() is a better idea
+        if (ChunkSystemHooks.isNonFullTicket() && center.getPersistedStatus() != ChunkStatus.FULL) { // TODO check if getHighestGeneratedStatus() is a better idea
             // do not keep chunk loaded, we are probably in a gen thread
             // if we proceed to add a ticket the chunk will be loaded, which is not what we want (avoid cascading gen)
             runnable.get();
             return;
         }
 
-        if (!world.getChunkSource().chunkMap.mainThreadExecutor.isSameThread()) {
+        if (!ChunkSystemHooks.isTicketThreadSafe() && !world.getChunkSource().chunkMap.mainThreadExecutor.isSameThread()) {
             // ticket logic is not safe to run off-main, re-schedule
             world.getChunkSource().chunkMap.mainThreadExecutor.execute(() -> {
                 this.queueTaskForSection(chunkX, chunkY, chunkZ, runnable);
@@ -96,20 +97,25 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         }
         updateFuture.isTicketAdded = true;
 
-        final int references = this.chunksBeingWorkedOn.addTo(key, 1);
+        final int references;
+        synchronized (this.chunksBeingWorkedOn) {
+            references = this.chunksBeingWorkedOn.addTo(key, 1);
+        }
         if (references == 0) {
             final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-            world.getChunkSource().addTicketWithRadius(StarLightInterface.CHUNK_WORK_TICKET, pos, 0);
+            ChunkSystemHooks.addLightTicket(world, pos);
         }
 
         updateFuture.onComplete.thenAcceptAsync((final Void ignore) -> {
-            final int newReferences = this.chunksBeingWorkedOn.get(key);
-            if (newReferences == 1) {
-                this.chunksBeingWorkedOn.remove(key);
-                final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-                world.getChunkSource().removeTicketWithRadius(StarLightInterface.CHUNK_WORK_TICKET, pos, 0);
-            } else {
-                this.chunksBeingWorkedOn.put(key, newReferences - 1);
+            synchronized (this.chunksBeingWorkedOn) {
+                final int newReferences = this.chunksBeingWorkedOn.addTo(key, -1);
+                if (newReferences == 0) {
+                    this.chunksBeingWorkedOn.remove(key);
+
+                    // ticket rm inside synchronized to avoid a race
+                    final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+                    ChunkSystemHooks.removeLightTicket(world, pos);
+                }
             }
         }, world.getChunkSource().chunkMap.mainThreadExecutor).whenComplete((final Void ignore, final Throwable thr) -> {
             if (thr != null) {
