@@ -1,6 +1,7 @@
 package ca.spottedleaf.starlight.common.util;
 
 import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
+import ca.spottedleaf.starlight.common.integration.v0.ChunkSystemHooks;
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 import ca.spottedleaf.starlight.common.light.StarLightEngine;
 import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
@@ -37,19 +38,21 @@ public final class SaveUtil {
     }
 
     private static void prepareSaveVanillaLightHookReal(final ServerLevel serverLevel, final ChunkAccess chunk, final SerializableChunkData data) {
+        boolean avoidLightCopy = ChunkSystemHooks.avoidLightCopy();
+
         // replace existing lighting data
         SWMRNibbleArray.SaveState[] blockNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).getBlockNibbles().length];
         SWMRNibbleArray.SaveState[] skyNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).getSkyNibbles().length];
         {
             SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).getBlockNibbles();
             for (int i = 0, nibblesLength = nibbles.length; i < nibblesLength; i++) {
-                blockNibbleSaveStates[i] = nibbles[i].getSaveState();
+                blockNibbleSaveStates[i] = nibbles[i].getSaveState(!avoidLightCopy);
             }
         }
         {
             SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).getSkyNibbles();
             for (int i = 0, nibblesLength = nibbles.length; i < nibblesLength; i++) {
-                skyNibbleSaveStates[i] = nibbles[i].getSaveState();
+                skyNibbleSaveStates[i] = nibbles[i].getSaveState(!avoidLightCopy);
             }
         }
 

@@ -14,6 +14,10 @@ public class ChunkSystemHooks {
         return false;
     }
 
+    public static boolean avoidLightCopy() {
+        return false;
+    }
+
     public static void addLightTicket(ServerLevel world, ChunkPos pos) {
         world.getChunkSource().addTicketWithRadius(StarLightInterface.CHUNK_WORK_TICKET, pos, 0);
     }
