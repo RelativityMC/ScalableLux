@@ -7,14 +7,13 @@ import ca.spottedleaf.starlight.common.util.CoordinateUtils;
 import ca.spottedleaf.starlight.common.util.WorldUtil;
 import ca.spottedleaf.starlight.common.world.ExtendedWorld;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
-import it.unimi.dsi.fastutil.longs.Long2ReferenceMaps;
-import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
+import it.unimi.dsi.fastutil.longs.LongPriorityQueue;
+import it.unimi.dsi.fastutil.longs.LongPriorityQueues;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortCollection;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
@@ -23,17 +22,20 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LightChunkGetter;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.lighting.LayerLightEventListener;
 import net.minecraft.world.level.lighting.LevelLightEngine;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.StampedLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
@@ -51,7 +53,7 @@ public final class StarLightInterface {
     protected final ArrayDeque<SkyStarLightEngine> cachedSkyPropagators;
     protected final ArrayDeque<BlockStarLightEngine> cachedBlockPropagators;
 
-    protected final LightQueue lightQueue = new LightQueue(this);
+    protected final LightQueue lightQueue;
 
     protected final LayerLightEventListener skyReader;
     protected final LayerLightEventListener blockReader;
@@ -87,6 +89,11 @@ public final class StarLightInterface {
         this.lightEngine = lightEngine;
         this.hasBlockLight = hasBlockLight;
         this.hasSkyLight = hasSkyLight;
+        if (this.isClientSide || !GlobalExecutors.ENABLED) {
+            this.lightQueue = new SimpleLightQueue(this);
+        } else {
+            this.lightQueue = new ConcurrentLightQueue(this);
+        }
         this.skyReader = !hasSkyLight ? LayerLightEventListener.DummyLightLayerEventListener.INSTANCE : new LayerLightEventListener() {
             @Override
             public void checkBlock(final BlockPos blockPos) {
@@ -541,26 +548,24 @@ public final class StarLightInterface {
         return this.lightQueue.getChunkSyncFuture(chunkX, chunkZ).thenApply(Function.identity());
     }
 
-    public void removeChunkTasks(final ChunkPos pos) {
-        this.lightQueue.removeChunk(pos);
-    }
-
     public void propagateChanges() {
         if (this.lightQueue.isEmpty()) {
             return;
         }
 
-        if (GlobalExecutors.ENABLED && this.lightEngine instanceof ThreadedLevelLightEngine threadedLevelLightEngine) {
-            this.schedulePropagation0(threadedLevelLightEngine);
+        if (this.lightQueue instanceof ConcurrentLightQueue) {
+            this.schedulePropagation0((ThreadedLevelLightEngine) this.lightEngine);
             return;
         }
+
+        SimpleLightQueue queue = (SimpleLightQueue) this.lightQueue;
 
         final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
         final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
 
         try {
             LightQueue.ChunkTasks task;
-            while ((task = this.lightQueue.removeFirstTask()) != null) {
+            while ((task = queue.removeFirstTask()) != null) {
                 handleUpdateInternal(task, skyEngine, blockEngine);
             }
         } finally {
@@ -572,18 +577,12 @@ public final class StarLightInterface {
     private static final AtomicInteger INSTANCE_COUNTER = new AtomicInteger(0);
     private static final CompletableFuture<Void> COMPLETED_FUTURE = CompletableFuture.completedFuture(null);
     private final int instanceId = INSTANCE_COUNTER.getAndIncrement();
-    private final Long2ReferenceMap<CompletableFuture<Void>> chunkFutures = Long2ReferenceMaps.synchronize(new Long2ReferenceOpenHashMap<>());
 
     private void schedulePropagation0(ThreadedLevelLightEngine threadedLevelLightEngine) {
-        synchronized (this.lightQueue) {
-            final ObjectBidirectionalIterator<Long2ObjectMap.Entry<LightQueue.ChunkTasks>> iterator = this.lightQueue.chunkTasks.long2ObjectEntrySet().fastIterator();
-            while (iterator.hasNext()) {
-                final Long2ObjectMap.Entry<LightQueue.ChunkTasks> entry = iterator.next();
-                final long pos = entry.getLongKey();
-                if (!this.chunkFutures.getOrDefault(pos, COMPLETED_FUTURE).isDone()) {
-                    continue;
-                }
-                CompletableFuture<Void> future = new CompletableFuture<>();
+        ConcurrentLightQueue queue = (ConcurrentLightQueue) this.lightQueue;
+        synchronized (queue) {
+            while (!queue.dirtyPos.isEmpty()) {
+                final long pos = queue.dirtyPos.dequeueLong();
                 SchedulingUtil.scheduleTask(
                         this.instanceId,
                         () -> {
@@ -591,10 +590,7 @@ public final class StarLightInterface {
                                 final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
                                 final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
 
-                                LightQueue.ChunkTasks tasks;
-                                synchronized (this.lightQueue) {
-                                    tasks = this.lightQueue.chunkTasks.remove(pos);
-                                }
+                                LightQueue.ChunkTasks tasks = queue.takeTask(pos);
                                 if (tasks != null) {
                                     try {
                                         handleUpdateInternal(tasks, skyEngine, blockEngine);
@@ -605,9 +601,7 @@ public final class StarLightInterface {
 
                                     threadedLevelLightEngine.tryScheduleUpdate();
                                 }
-                                future.complete(null);
                             } catch (Throwable t) {
-                                future.completeExceptionally(t);
                                 t.printStackTrace();
                             }
                         },
@@ -615,19 +609,16 @@ public final class StarLightInterface {
                         CoordinateUtils.getChunkZ(pos),
                         2
                 );
-                chunkFutures.put(pos, future);
-                future.whenComplete((unused, throwable) -> this.chunkFutures.remove(pos, future));
             }
-            this.lightQueue.queueDirty = false;
         }
     }
 
-    /**
-     * Only relevant on server lighting with scaling enabled, best-effort check if the queue is dirty.
-     */
-    public boolean isQueueDirty() {
-        return this.lightQueue.queueDirty;
-    }
+//    /**
+//     * Only relevant on server lighting with scaling enabled, best-effort check if the queue is dirty.
+//     */
+//    public boolean isQueueDirty() {
+//        return this.lightQueue.queueDirty;
+//    }
 
     private void handleUpdateInternal(LightQueue.ChunkTasks task, SkyStarLightEngine skyEngine, BlockStarLightEngine blockEngine) { // keep indentation
                 if (task.lightTasks != null) {
@@ -660,13 +651,202 @@ public final class StarLightInterface {
                 task.onComplete.complete(null);
     }
 
-    public static final class LightQueue {
 
+    public static final class ConcurrentLightQueue implements LightQueue {
+
+        protected final StampedLock tasksLock = new StampedLock();
+        protected final Long2ObjectOpenHashMap<ChunkTasks> chunkTasks = new Long2ObjectOpenHashMap<>() {
+            @Override
+            protected void rehash(int newN) {
+                if (n < newN) {
+                    super.rehash(newN);
+                }
+            }
+        };
+        protected final StarLightInterface manager;
+        protected final LongPriorityQueue dirtyPos = LongPriorityQueues.synchronize(new LongArrayFIFOQueue());
+
+        public ConcurrentLightQueue(final StarLightInterface manager) {
+            this.manager = manager;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return this.chunkTasks.isEmpty();
+        }
+
+        @Override
+        public synchronized LightQueue.ChunkTasks queueBlockChange(final BlockPos pos) {
+            return this.enqueueImpl(CoordinateUtils.getChunkKey(pos), tasks -> tasks.changedPositions.add(pos.immutable()));
+        }
+
+        @Override
+        public synchronized LightQueue.ChunkTasks queueSectionChange(final SectionPos pos, final boolean newEmptyValue) {
+            return this.enqueueImpl(CoordinateUtils.getChunkKey(pos), tasks -> {
+                if (tasks.changedSectionSet == null) {
+                    tasks.changedSectionSet = new Boolean[this.manager.maxSection - this.manager.minSection + 1];
+                }
+                tasks.changedSectionSet[pos.getY() - this.manager.minSection] = Boolean.valueOf(newEmptyValue);
+            });
+        }
+
+        @Override
+        public synchronized LightQueue.ChunkTasks queueChunkLighting(final ChunkPos pos, final Runnable lightTask) {
+            return this.enqueueImpl(CoordinateUtils.getChunkKey(pos), tasks -> {
+                if (tasks.lightTasks == null) {
+                    tasks.lightTasks = new ArrayList<>();
+                }
+                tasks.lightTasks.add(lightTask);
+            });
+        }
+
+        @Override
+        public synchronized LightQueue.ChunkTasks queueChunkSkylightEdgeCheck(final SectionPos pos, final ShortCollection sections) {
+            return this.enqueueImpl(CoordinateUtils.getChunkKey(pos), tasks -> {
+                ShortOpenHashSet queuedEdges = tasks.queuedEdgeChecksSky;
+                if (queuedEdges == null) {
+                    queuedEdges = tasks.queuedEdgeChecksSky = new ShortOpenHashSet();
+                }
+                queuedEdges.addAll(sections);
+            });
+        }
+
+        @Override
+        public synchronized LightQueue.ChunkTasks queueChunkBlocklightEdgeCheck(final SectionPos pos, final ShortCollection sections) {
+            return this.enqueueImpl(CoordinateUtils.getChunkKey(pos), tasks -> {
+                ShortOpenHashSet queuedEdges = tasks.queuedEdgeChecksBlock;
+                if (queuedEdges == null) {
+                    queuedEdges = tasks.queuedEdgeChecksBlock = new ShortOpenHashSet();
+                }
+                queuedEdges.addAll(sections);
+            });
+        }
+
+        @Override
+        public CompletableFuture<Void> getChunkSyncFuture(final int chunkX, final int chunkZ) {
+            final ChunkTasks tasks = this.getChunkTasksOrNull(CoordinateUtils.getChunkKey(chunkX, chunkZ));
+            if (tasks == null) {
+                return CompletableFuture.completedFuture(null);
+            } else {
+                return tasks.onComplete;
+            }
+        }
+
+        public ChunkTasks takeTask(long key) {
+            ChunkTasks tasks;
+            long stamp = this.tasksLock.writeLock();
+            try {
+                tasks = this.chunkTasks.remove(key);
+            } finally {
+                this.tasksLock.unlockWrite(stamp);
+            }
+            Objects.requireNonNull(tasks);
+            synchronized (tasks) {
+                tasks.isExecuting = true;
+            }
+            return tasks;
+        }
+
+        private ChunkTasks enqueueImpl(long key, Consumer<ChunkTasks> action) {
+            retry:
+            while (true) {
+                final ChunkTasks tasks = this.getOrCreateChunkTasks(key);
+                synchronized (tasks) {
+                    if (tasks.isExecuting) {
+                        continue retry;
+                    }
+                    action.accept(tasks);
+                    if (!tasks.isQueued) {
+                        tasks.isQueued = true;
+                        this.dirtyPos.enqueue(key);
+                    }
+                    return tasks;
+                }
+            }
+        }
+
+        private ChunkTasks getChunkTasksOrNull(long key) {
+            long stamp = this.tasksLock.tryOptimisticRead();
+            if (stamp != 0L) {
+                try {
+                    ChunkTasks tasks = this.chunkTasks.get(key);
+                    if (this.tasksLock.validate(stamp)) {
+                        return tasks;
+                    }
+                    // fall through
+                } catch (Throwable ignored) {
+                    // fall through
+                }
+            }
+
+            stamp = this.tasksLock.readLock();
+            try {
+                return this.chunkTasks.get(key);
+            } finally {
+                this.tasksLock.unlockRead(stamp);
+            }
+        }
+
+        private ChunkTasks getOrCreateChunkTasks(long key) {
+            long stamp = this.tasksLock.tryOptimisticRead();
+            ChunkTasks tasks;
+            boolean tryReadAgain = true;
+            if (stamp != 0L) {
+                try {
+                    tasks = this.chunkTasks.get(key);
+                    if (this.tasksLock.validate(stamp)) {
+                        tryReadAgain = false;
+                        if (tasks != null) {
+                            return tasks;
+                        }
+                    }
+                    // fall through
+                } catch (Throwable ignored) {
+                    // fall through
+                }
+            }
+            long writeStamp;
+            if (tryReadAgain) {
+                stamp = this.tasksLock.readLock();
+                try {
+                    tasks = this.chunkTasks.get(key);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    this.tasksLock.unlockRead(stamp);
+                    throw t;
+                }
+                if (tasks != null) {
+                    this.tasksLock.unlockRead(stamp);
+                    return tasks;
+                }
+                tasks = new ChunkTasks(key); // move creation out of write lock region
+                writeStamp = this.tasksLock.tryConvertToWriteLock(stamp);
+                if (writeStamp == 0L) {
+                    this.tasksLock.unlockRead(stamp);
+                    writeStamp = this.tasksLock.writeLock();
+                }
+            } else {
+                tasks = new ChunkTasks(key); // move creation out of write lock region
+                writeStamp = this.tasksLock.writeLock();
+            }
+            try {
+                ChunkTasks inMap = this.chunkTasks.putIfAbsent(key, tasks);
+                if (inMap != null) {
+                    tasks = inMap; // return the correct thing
+                }
+            } finally {
+                this.tasksLock.unlockWrite(writeStamp);
+            }
+            return tasks;
+        }
+    }
+
+    public static final class SimpleLightQueue implements LightQueue {
         protected final Long2ObjectLinkedOpenHashMap<ChunkTasks> chunkTasks = new Long2ObjectLinkedOpenHashMap<>();
         protected final StarLightInterface manager;
         protected volatile boolean queueDirty = false;
 
-        public LightQueue(final StarLightInterface manager) {
+        public SimpleLightQueue(final StarLightInterface manager) {
             this.manager = manager;
         }
 
@@ -756,9 +936,24 @@ public final class StarLightInterface {
             }
             return this.chunkTasks.removeFirst();
         }
+    }
+
+    public static sealed interface LightQueue permits SimpleLightQueue, ConcurrentLightQueue {
+        boolean isEmpty();
+
+        ChunkTasks queueBlockChange(BlockPos pos);
+
+        ChunkTasks queueSectionChange(SectionPos pos, boolean newEmptyValue);
+
+        ChunkTasks queueChunkLighting(ChunkPos pos, Runnable lightTask);
+
+        ChunkTasks queueChunkSkylightEdgeCheck(SectionPos pos, ShortCollection sections);
+
+        ChunkTasks queueChunkBlocklightEdgeCheck(SectionPos pos, ShortCollection sections);
+
+        CompletableFuture<Void> getChunkSyncFuture(int chunkX, int chunkZ);
 
         public static final class ChunkTasks {
-
             public final Set<BlockPos> changedPositions = new ObjectOpenHashSet<>();
             public Boolean[] changedSectionSet;
             public ShortOpenHashSet queuedEdgeChecksSky;
@@ -767,6 +962,9 @@ public final class StarLightInterface {
 
             public boolean isTicketAdded = false;
             public final CompletableFuture<Void> onComplete = new CompletableFuture<>();
+
+            public boolean isQueued = false;
+            public boolean isExecuting = false;
 
             public final long chunkCoordinate;
 
