@@ -248,24 +248,20 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
     @Unique
     private final AtomicLong scalablelux$lastLightUpdate = new AtomicLong(0);
 
-//    @WrapOperation(method = "tryScheduleUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;hasLightWork()Z"))
-//    private boolean scheduleOnlyWhenDirty(ThreadedLevelLightEngine instance, Operation<Boolean> original) {
-//        if (!GlobalExecutors.ENABLED) {
-//            return original.call(instance);
-//        }
-//        final boolean queueDirty = ((StarLightLightingProvider) instance).getLightEngine().isQueueDirty();
-//        if (queueDirty) {
-//            return original.call(instance);
-//        }
-//        final long lastUpdate = this.scalablelux$lastLightUpdate.get();
-//        final long currentTime = System.nanoTime();
-//        if (currentTime - lastUpdate >= 10_000_000L) { // 10ms
-//            if (this.scalablelux$lastLightUpdate.compareAndSet(lastUpdate, currentTime)) {
-//                return original.call(instance);
-//            }
-//        }
-//        return false;
-//    }
+    @WrapOperation(method = "tryScheduleUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;hasLightWork()Z"))
+    private boolean scheduleOnlyWhenDirty(ThreadedLevelLightEngine instance, Operation<Boolean> original) {
+        if (!GlobalExecutors.ENABLED) {
+            return original.call(instance);
+        }
+        final long lastUpdate = this.scalablelux$lastLightUpdate.get();
+        final long currentTime = System.nanoTime();
+        if (currentTime - lastUpdate >= 10_000_000L) { // 10ms
+            if (this.scalablelux$lastLightUpdate.compareAndSet(lastUpdate, currentTime)) {
+                return original.call(instance);
+            }
+        }
+        return false;
+    }
 
     /**
      * @author ishland
