@@ -85,7 +85,7 @@ jar {
 }
 
 shadowJar {
-    archiveClassifier = ""
+    archiveClassifier = "all"
     configurations = [ project.configurations.shadowInclude ]
 
     relocate "com.ishland.flowsched", "ca.spottedleaf.starlight.interndep.flowsched"
