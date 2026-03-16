@@ -21,7 +21,7 @@ def getGitCommit = { ->
     def stdout = providers.exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'
 //        workingDir = ".."
-    }.standardOutput.asText.get()
+    }.standardOutput.asText.get().trim()
     return stdout
 }
 
