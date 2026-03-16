@@ -137,7 +137,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
 
         final int sectionOffset = this.chunkSectionIndexOffset;
         final BlockState conditionallyOpaqueState;
-        int opacity = Math.max(1, centerState.getLightBlock());
+        int opacity = Math.max(1, centerState.getLightDampening());
         if (opacity >= 15) {
             return level; // TODO in older starlight, opacity >= 15 can go into the loop below, but it probably shouldn't
         }
@@ -199,8 +199,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
     protected List<BlockPos> getSources(final LightChunkGetter lightAccess, final ChunkAccess chunk) {
         final List<BlockPos> sources = new ArrayList<>();
 
-        final int offX = chunk.getPos().x << 4;
-        final int offZ = chunk.getPos().z << 4;
+        final int offX = chunk.getPos().x() << 4;
+        final int offZ = chunk.getPos().z() << 4;
 
         final LevelChunkSection[] sections = chunk.getSections();
         for (int sectionY = this.minSection; sectionY <= this.maxSection; ++sectionY) {

@@ -31,8 +31,8 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
     @Unique
     private boolean isConditionallyFullOpaque;
 
-    protected BlockStateBaseMixin(Block object, Reference2ObjectArrayMap<Property<?>, Comparable<?>> reference2ObjectArrayMap, MapCodec<BlockState> mapCodec) {
-        super(object, reference2ObjectArrayMap, mapCodec);
+    protected BlockStateBaseMixin(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
+        super(owner, propertyKeys, propertyValues);
     }
 
     /**

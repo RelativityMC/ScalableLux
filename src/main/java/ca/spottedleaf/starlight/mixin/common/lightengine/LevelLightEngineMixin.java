@@ -125,7 +125,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
 
         // store state for implementation of lightOnInColumn()
         // needed for proper culling of chunks in the client
-        final long key = pos.toLong();
+        final long key = pos.pack();
         if (lightEnabled) {
             this.scalablelux$lightingEnabledChunks.add(key);
         } else {

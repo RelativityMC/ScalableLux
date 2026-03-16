@@ -230,7 +230,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
                 // can't really force the chunk to be edged checked, as we need neighbouring chunks - but we don't have
                 // them, so if it's not loaded then i guess we can't do edge checks. later loads of the chunk should
                 // catch what we miss here.
-                this.getLightEngine().checkChunkEdges(chunkPos.x, chunkPos.z);
+                this.getLightEngine().checkChunkEdges(chunkPos.x(), chunkPos.z());
             }
 
 //            this.chunkMap.releaseLightTicket(chunkPos); // vanilla 1.21 no longer does this
