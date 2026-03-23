@@ -5,7 +5,7 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index 9877507..c460228 100644
+index 9877507..695bc69 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
@@ -55,6 +55,15 @@ index 9877507..c460228 100644
      }
  }
  
+@@ -91,6 +103,8 @@ shadowJar {
+     relocate "com.ishland.flowsched", "ca.spottedleaf.starlight.interndep.flowsched"
+ }
+ 
++loom.convertAw2At(tasks.named("shadowJar"), ["scalablelux.accesswidener"])
++
+ clean.dependsOn gradle.includedBuild('FlowSched').task(':clean')
+ 
+ // make build reproducible
 diff --git a/gradle.properties b/gradle.properties
 index 46c31dd..78e5003 100644
 --- a/gradle.properties
