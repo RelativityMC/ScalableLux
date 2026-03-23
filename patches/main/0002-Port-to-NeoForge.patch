@@ -5,46 +5,46 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index 812f429..5edf3ff 100644
+index 9877507..c460228 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
  plugins {
--    id 'fabric-loom' version '1.11-SNAPSHOT'
-+    id 'dev.architectury.loom' version '1.11-SNAPSHOT'
+-    id 'net.fabricmc.fabric-loom' version '1.15-SNAPSHOT'
++    id 'org.relativitymc.neo-loom' version '1.15-SNAPSHOT'
      id 'maven-publish'
-     id 'com.github.johnrengelman.shadow' version '8.1.1'
+     id 'com.gradleup.shadow' version '9.4.0'
  }
-@@ -28,15 +28,19 @@ def getGitCommit = { ->
- }
+@@ -27,14 +27,26 @@ def getGitCommit = { ->
  
- archivesBaseName = project.archives_base_name
--version = project.mod_version + "+fabric." + getGitCommit()
-+version = project.mod_version + "+neoforge." + getGitCommit()
- group = project.maven_group
+ base {
+     archivesName = project.archives_base_name
+-    version = project.mod_version + "+fabric." + getGitCommit()
++    version = project.mod_version + "+neoforge." + getGitCommit()
+     group = project.maven_group
+ }
  
 +repositories {
 +    maven { url "https://maven.neoforged.net/releases/" }
++    maven {
++        name = "Maven for PR #2879" // https://github.com/neoforged/NeoForge/pull/2879
++        url = uri("https://prmaven.neoforged.net/NeoForge/pr2879")
++        content {
++            includeModule("net.neoforged", "neoforge")
++            includeModule("net.neoforged", "testframework")
++        }
++    }
 +}
 +
  dependencies {
      //to change the versions see the gradle.properties file
      minecraft "com.mojang:minecraft:${project.minecraft_version}"
-     //mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-     mappings loom.officialMojangMappings()
--    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 +    neoForge "net.neoforged:neoforge:${project.forge_version}"
  
      // Fabric API. This is technically optional, but you probably want it anyway.
      //modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-@@ -47,14 +51,14 @@ dependencies {
-     shadowInclude("com.ishland.flowsched:flowsched") {
-         transitive false
-     }
--    implementation("com.ishland.flowsched:flowsched")
-+    forgeRuntimeLibrary implementation("com.ishland.flowsched:flowsched")
- }
- 
+@@ -51,8 +63,8 @@ dependencies {
  processResources {
      inputs.property "version", project.version
  
@@ -55,27 +55,8 @@ index 812f429..5edf3ff 100644
      }
  }
  
-@@ -78,8 +82,8 @@ java {
-     // If you remove this line, sources will not be generated.
-     withSourcesJar()
- 
--    sourceCompatibility = JavaVersion.VERSION_17
--    targetCompatibility = JavaVersion.VERSION_17
-+    sourceCompatibility = JavaVersion.VERSION_21
-+    targetCompatibility = JavaVersion.VERSION_21
- }
- jar {
-     from "LICENSE"
-@@ -96,6 +100,7 @@ remapJar {
-     input = shadowJar.archiveFile
-     archiveFileName = shadowJar.archiveFileName.get().replaceAll("-dev\\.jar\$", ".jar")
-     addNestedDependencies = true
-+    atAccessWideners.add("scalablelux.accesswidener")
-     dependsOn shadowJar
- }
- 
 diff --git a/gradle.properties b/gradle.properties
-index 0586a73..ebb1338 100644
+index 46c31dd..78e5003 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -1,10 +1,11 @@
@@ -85,23 +66,25 @@ index 0586a73..ebb1338 100644
 +loom.platform=neoforge
  # Fabric Properties
  # check these on https://modmuss50.me/fabric.html
--minecraft_version=1.21.9-rc1
--loader_version=0.17.2
-+minecraft_version=1.21.9
-+forge_version=21.9.3-beta
+-minecraft_version=26.1-rc-2
+-loader_version=0.18.4
++minecraft_version=26.1-rc-3
++forge_version=26.1.0.0-alpha.0+rc-3.20260323.142228
  # Mod Properties
- mod_version=0.1.6
+ mod_version=0.2.0
  maven_group=ca.spottedleaf.starlight
 diff --git a/settings.gradle b/settings.gradle
-index 72ebf6e..a2bc74d 100644
+index 72ebf6e..344d01a 100644
 --- a/settings.gradle
 +++ b/settings.gradle
-@@ -4,6 +4,8 @@ pluginManagement {
+@@ -4,6 +4,10 @@ pluginManagement {
              name = 'Fabric'
              url = 'https://maven.fabricmc.net/'
          }
-+        maven { url "https://maven.architectury.dev/" }
-+        maven { url "https://maven.neoforged.net/releases/" }
++        maven {
++            name = 'RelativityMC'
++            url = 'https://repo.codemc.io/repository/relativitymc/'
++        }
          mavenCentral()
          gradlePluginPortal()
      }
@@ -137,7 +120,7 @@ index 8594799..0ec28f9 100644
 +
  }
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
-index 6397f4d..61c0489 100644
+index 5ecceaa..69995f5 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
 @@ -1,9 +1,7 @@
@@ -151,7 +134,7 @@ index 6397f4d..61c0489 100644
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
  
-@@ -24,7 +22,7 @@ public class Config {
+@@ -23,7 +21,7 @@ public class Config {
      static {
          final Properties properties = new Properties();
          final Properties newProperties = new Properties();
@@ -160,7 +143,7 @@ index 6397f4d..61c0489 100644
          if (Files.isRegularFile(path)) {
              try (InputStream in = Files.newInputStream(path, StandardOpenOption.CREATE)) {
                  properties.load(in);
-@@ -73,26 +71,26 @@ public class Config {
+@@ -67,26 +65,26 @@ public class Config {
  
      private static boolean getBoolean(Properties properties, Properties newProperties, String key, boolean def) {
          boolean boolean0 = getBoolean0(properties, newProperties, key, def);
@@ -208,7 +191,7 @@ index 6397f4d..61c0489 100644
      }
  
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
-index a2d4826..68526da 100644
+index 9bb6956..cd152f4 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
 @@ -95,7 +95,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
@@ -262,7 +245,7 @@ index a2d4826..68526da 100644
              if (emittedLight <= this.getLightLevel(pos.getX(), pos.getY(), pos.getZ())) {
                  // some other source is brighter
 diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
-index 7fbc6af..8a397d4 100644
+index c010577..154ea07 100644
 --- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
 +++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
 @@ -112,6 +112,7 @@ public abstract class StarLightEngine {
@@ -319,7 +302,7 @@ index 7fbc6af..8a397d4 100644
                              // re-propagate source
                              // note: do not set recheck level, or else the propagation will fail
 diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
-index 84f2af1..9647f8c 100644
+index a9b3947..95f936f 100644
 --- a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
 +++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
 @@ -1,14 +1,17 @@
@@ -356,8 +339,8 @@ index 84f2af1..9647f8c 100644
 +    @Unique
 +    private boolean scalablelux$actuallyDynamicLightEmission;
 +
-     protected BlockStateBaseMixin(Block object, Reference2ObjectArrayMap<Property<?>, Comparable<?>> reference2ObjectArrayMap, MapCodec<BlockState> mapCodec) {
-         super(object, reference2ObjectArrayMap, mapCodec);
+     protected BlockStateBaseMixin(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
+         super(owner, propertyKeys, propertyValues);
      }
 @@ -44,6 +55,16 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
      )

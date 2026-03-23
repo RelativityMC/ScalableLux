@@ -113,17 +113,17 @@ index 5066ce5..a2c8095 100644
 +in 1.19 Folia. This is critical to allowing the chunk system to scale beyond 10 worker threads,
 +which is important for dedicated servers with more players to stress chunk generation.
 diff --git a/build.gradle b/build.gradle
-index 2692ecd..812f429 100644
+index 5038004..9877507 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -22,7 +22,7 @@ def getGitCommit = { ->
-     exec {
+@@ -20,7 +20,7 @@ loom.runs.all {
+ def getGitCommit = { ->
+     def stdout = providers.exec {
          commandLine 'git', 'rev-parse', '--short', 'HEAD'
-         standardOutput = stdout
 -//        workingDir = ".."
 +        workingDir = ".."
-     }
-     return stdout.toString().trim()
+     }.standardOutput.asText.get().trim()
+     return stdout
  }
 diff --git a/settings.gradle b/settings.gradle
 index 59b33fb..72ebf6e 100644
