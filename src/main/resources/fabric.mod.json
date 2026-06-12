@@ -32,6 +32,6 @@
   "accessWidener" : "scalablelux.accesswidener",
   "depends": {
     "fabricloader": ">=${loader_version}",
-    "minecraft": ">1.21.1"
+    "minecraft": ">=26.2-rc.1"
   }
 }
