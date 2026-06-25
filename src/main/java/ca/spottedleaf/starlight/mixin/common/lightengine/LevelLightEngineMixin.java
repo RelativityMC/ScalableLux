@@ -56,7 +56,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
      * TODO since this is a constructor inject, check on update for new constructors
      */
     @Inject(
-            method = "<init>", at = @At("TAIL")
+            method = "<init>(Lnet/minecraft/world/level/chunk/LightChunkGetter;ZZ)V", at = @At("TAIL")
     )
     public void construct(final LightChunkGetter chunkProvider, final boolean hasBlockLight, final boolean hasSkyLight,
                           final CallbackInfo ci) {
@@ -66,6 +66,20 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
         } else {
             this.lightEngine = new StarLightInterface(null, hasSkyLight, hasBlockLight, (LevelLightEngine)(Object)this);
         }
+        // intentionally destroy mods hooking into old light engine state
+        this.blockEngine = null;
+        this.skyEngine = null;
+    }
+
+    /**
+     *
+     * TODO since this is a constructor inject, check on update for new constructors
+     */
+    @Inject(
+            method = "<init>()V", at = @At("TAIL")
+    )
+    public void construct(CallbackInfo ci) {
+        this.lightEngine = new StarLightInterface(null, false, false, (LevelLightEngine)(Object)this);
         // intentionally destroy mods hooking into old light engine state
         this.blockEngine = null;
         this.skyEngine = null;
