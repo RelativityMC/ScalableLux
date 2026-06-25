@@ -44,11 +44,11 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     private LightEngine<?, ?> skyEngine;
 
     @Unique
-    protected StarLightInterface lightEngine;
+    protected StarLightInterface scalablelux$lightEngine;
 
     @Override
     public final StarLightInterface scalablelux$getLightEngine() {
-        return this.lightEngine;
+        return this.scalablelux$lightEngine;
     }
 
     /**
@@ -62,9 +62,9 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
                           final CallbackInfo ci) {
         // avoid ClassCastException in cases where custom LightChunkGetters do not return a Level from getLevel()
         if (chunkProvider.getLevel() instanceof Level) {
-            this.lightEngine = new StarLightInterface(chunkProvider, hasSkyLight, hasBlockLight, (LevelLightEngine)(Object)this);
+            this.scalablelux$lightEngine = new StarLightInterface(chunkProvider, hasSkyLight, hasBlockLight, (LevelLightEngine)(Object)this);
         } else {
-            this.lightEngine = new StarLightInterface(null, hasSkyLight, hasBlockLight, (LevelLightEngine)(Object)this);
+            this.scalablelux$lightEngine = new StarLightInterface(null, hasSkyLight, hasBlockLight, (LevelLightEngine)(Object)this);
         }
         // intentionally destroy mods hooking into old light engine state
         this.blockEngine = null;
@@ -79,7 +79,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
             method = "<init>()V", at = @At("TAIL")
     )
     public void construct(CallbackInfo ci) {
-        this.lightEngine = new StarLightInterface(null, false, false, (LevelLightEngine)(Object)this);
+        this.scalablelux$lightEngine = new StarLightInterface(null, false, false, (LevelLightEngine)(Object)this);
         // intentionally destroy mods hooking into old light engine state
         this.blockEngine = null;
         this.skyEngine = null;
@@ -91,7 +91,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
      */
     @Overwrite
     public void checkBlock(final BlockPos pos) {
-        this.lightEngine.blockChange(pos.immutable());
+        this.scalablelux$lightEngine.blockChange(pos.immutable());
     }
 
     /**
@@ -101,7 +101,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     @Overwrite
     public boolean hasLightWork() {
         // route to new light engine
-        return this.lightEngine.hasUpdates();
+        return this.scalablelux$lightEngine.hasUpdates();
     }
 
     /**
@@ -112,7 +112,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     public int runLightUpdates() {
         // replace impl
         final boolean hadUpdates = this.hasLightWork();
-        this.lightEngine.propagateChanges();
+        this.scalablelux$lightEngine.propagateChanges();
         return hadUpdates ? 1 : 0;
     }
 
@@ -122,7 +122,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
      */
     @Overwrite
     public void updateSectionStatus(final SectionPos pos, final boolean notReady) {
-        this.lightEngine.sectionChange(pos, notReady);
+        this.scalablelux$lightEngine.sectionChange(pos, notReady);
     }
 
     @Unique
@@ -162,7 +162,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
      */
     @Overwrite
     public LayerLightEventListener getLayerListener(final LightLayer lightType) {
-        return lightType == LightLayer.BLOCK ? this.lightEngine.getBlockReader() : this.lightEngine.getSkyReader();
+        return lightType == LightLayer.BLOCK ? this.scalablelux$lightEngine.getBlockReader() : this.scalablelux$lightEngine.getSkyReader();
     }
 
     /**
@@ -191,9 +191,9 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     @Overwrite
     public LayerLightSectionStorage.SectionType getDebugSectionType(LightLayer lightLayer, SectionPos sectionPos) {
         if (lightLayer == LightLayer.BLOCK) {
-            return this.lightEngine.hasSectionBlockLight(sectionPos) ? LayerLightSectionStorage.SectionType.LIGHT_AND_DATA : LayerLightSectionStorage.SectionType.EMPTY;
+            return this.scalablelux$lightEngine.hasSectionBlockLight(sectionPos) ? LayerLightSectionStorage.SectionType.LIGHT_AND_DATA : LayerLightSectionStorage.SectionType.EMPTY;
         } else {
-            return this.lightEngine.hasSectionSkyLight(sectionPos) ? LayerLightSectionStorage.SectionType.LIGHT_AND_DATA : LayerLightSectionStorage.SectionType.EMPTY;
+            return this.scalablelux$lightEngine.hasSectionSkyLight(sectionPos) ? LayerLightSectionStorage.SectionType.LIGHT_AND_DATA : LayerLightSectionStorage.SectionType.EMPTY;
         }
     }
 
@@ -213,7 +213,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     @Overwrite
     public int getRawBrightness(final BlockPos pos, final int ambientDarkness) {
         // need to use new light hooks for this
-        return this.lightEngine.getRawBrightness(pos, ambientDarkness);
+        return this.scalablelux$lightEngine.getRawBrightness(pos, ambientDarkness);
     }
 
     /**
@@ -223,14 +223,14 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     @Overwrite
     public boolean lightOnInColumn(final long pos) {
         final long key = CoordinateUtils.getChunkKey(SectionPos.x(pos), SectionPos.z(pos));
-        return this.scalablelux$lightingEnabledChunks.contains(key) || (!this.lightEngine.hasBlockLight() || this.blockLightMap.get(key) != null) && (!this.lightEngine.hasSkyLight() || this.skyLightMap.get(key) != null);
+        return this.scalablelux$lightingEnabledChunks.contains(key) || (!this.scalablelux$lightEngine.hasBlockLight() || this.scalablelux$blockLightMap.get(key) != null) && (!this.scalablelux$lightEngine.hasSkyLight() || this.scalablelux$skyLightMap.get(key) != null);
     }
 
     @Unique
-    protected final Long2ObjectOpenHashMap<SWMRNibbleArray[]> blockLightMap = new Long2ObjectOpenHashMap<>();
+    protected final Long2ObjectOpenHashMap<SWMRNibbleArray[]> scalablelux$blockLightMap = new Long2ObjectOpenHashMap<>();
 
     @Unique
-    protected final Long2ObjectOpenHashMap<SWMRNibbleArray[]> skyLightMap = new Long2ObjectOpenHashMap<>();
+    protected final Long2ObjectOpenHashMap<SWMRNibbleArray[]> scalablelux$skyLightMap = new Long2ObjectOpenHashMap<>();
 
     @Override
     public void scalablelux$clientUpdateLight(final LightLayer lightType, final SectionPos pos,
@@ -242,28 +242,28 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
         final ChunkAccess chunk = this.scalablelux$getLightEngine().getAnyChunkNow(pos.getX(), pos.getZ());
         switch (lightType) {
             case BLOCK: {
-                final SWMRNibbleArray[] blockNibbles = this.blockLightMap.computeIfAbsent(CoordinateUtils.getChunkKey(pos), (final long keyInMap) -> {
-                    return StarLightEngine.getFilledEmptyLight(this.lightEngine.getWorld());
+                final SWMRNibbleArray[] blockNibbles = this.scalablelux$blockLightMap.computeIfAbsent(CoordinateUtils.getChunkKey(pos), (final long keyInMap) -> {
+                    return StarLightEngine.getFilledEmptyLight(this.scalablelux$lightEngine.getWorld());
                 });
 
-                blockNibbles[pos.getY() - WorldUtil.getMinLightSection(this.lightEngine.getWorld())] = SWMRNibbleArray.fromVanilla(nibble);
+                blockNibbles[pos.getY() - WorldUtil.getMinLightSection(this.scalablelux$lightEngine.getWorld())] = SWMRNibbleArray.fromVanilla(nibble);
 
                 if (chunk != null) {
                     ((ExtendedChunk)chunk).scalablelux$setBlockNibbles(blockNibbles);
-                    this.lightEngine.getLightAccess().onLightUpdate(LightLayer.BLOCK, pos);
+                    this.scalablelux$lightEngine.getLightAccess().onLightUpdate(LightLayer.BLOCK, pos);
                 }
                 break;
             }
             case SKY: {
-                final SWMRNibbleArray[] skyNibbles = this.skyLightMap.computeIfAbsent(CoordinateUtils.getChunkKey(pos), (final long keyInMap) -> {
-                    return StarLightEngine.getFilledEmptyLight(this.lightEngine.getWorld());
+                final SWMRNibbleArray[] skyNibbles = this.scalablelux$skyLightMap.computeIfAbsent(CoordinateUtils.getChunkKey(pos), (final long keyInMap) -> {
+                    return StarLightEngine.getFilledEmptyLight(this.scalablelux$lightEngine.getWorld());
                 });
 
-                skyNibbles[pos.getY() - WorldUtil.getMinLightSection(this.lightEngine.getWorld())] = SWMRNibbleArray.fromVanilla(nibble);
+                skyNibbles[pos.getY() - WorldUtil.getMinLightSection(this.scalablelux$lightEngine.getWorld())] = SWMRNibbleArray.fromVanilla(nibble);
 
                 if (chunk != null) {
                     ((ExtendedChunk)chunk).scalablelux$setSkyNibbles(skyNibbles);
-                    this.lightEngine.getLightAccess().onLightUpdate(LightLayer.SKY, pos);
+                    this.scalablelux$lightEngine.getLightAccess().onLightUpdate(LightLayer.SKY, pos);
                 }
                 break;
             }
@@ -275,8 +275,8 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
         if (((Object)this).getClass() != LevelLightEngine.class) {
             throw new IllegalStateException("This hook is for the CLIENT ONLY");
         }
-        this.blockLightMap.remove(CoordinateUtils.getChunkKey(chunkPos));
-        this.skyLightMap.remove(CoordinateUtils.getChunkKey(chunkPos));
+        this.scalablelux$blockLightMap.remove(CoordinateUtils.getChunkKey(chunkPos));
+        this.scalablelux$skyLightMap.remove(CoordinateUtils.getChunkKey(chunkPos));
     }
 
     @Override
@@ -285,8 +285,8 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
             throw new IllegalStateException("This hook is for the CLIENT ONLY");
         }
         final long key = CoordinateUtils.getChunkKey(pos);
-        final SWMRNibbleArray[] blockNibbles = this.blockLightMap.get(key);
-        final SWMRNibbleArray[] skyNibbles = this.skyLightMap.get(key);
+        final SWMRNibbleArray[] blockNibbles = this.scalablelux$blockLightMap.get(key);
+        final SWMRNibbleArray[] skyNibbles = this.scalablelux$skyLightMap.get(key);
         if (blockNibbles != null) {
             ((ExtendedChunk)chunk).scalablelux$setBlockNibbles(blockNibbles);
         }

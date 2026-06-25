@@ -28,55 +28,55 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
 
 
     @Unique
-    private volatile SWMRNibbleArray[] blockNibbles;
+    private volatile SWMRNibbleArray[] scalablelux$blockNibbles;
 
     @Unique
-    private volatile SWMRNibbleArray[] skyNibbles;
+    private volatile SWMRNibbleArray[] scalablelux$skyNibbles;
 
     @Unique
-    private volatile boolean[] skyEmptinessMap;
+    private volatile boolean[] scalablelux$skyEmptinessMap;
 
     @Unique
-    private volatile boolean[] blockEmptinessMap;
+    private volatile boolean[] scalablelux$blockEmptinessMap;
 
     @Override
     public SWMRNibbleArray[] scalablelux$getBlockNibbles() {
-        return this.blockNibbles;
+        return this.scalablelux$blockNibbles;
     }
 
     @Override
     public void scalablelux$setBlockNibbles(final SWMRNibbleArray[] nibbles) {
-        this.blockNibbles = nibbles;
+        this.scalablelux$blockNibbles = nibbles;
     }
 
     @Override
     public SWMRNibbleArray[] scalablelux$getSkyNibbles() {
-        return this.skyNibbles;
+        return this.scalablelux$skyNibbles;
     }
 
     @Override
     public void scalablelux$setSkyNibbles(final SWMRNibbleArray[] nibbles) {
-        this.skyNibbles = nibbles;
+        this.scalablelux$skyNibbles = nibbles;
     }
 
     @Override
     public boolean[] scalablelux$getSkyEmptinessMap() {
-        return this.skyEmptinessMap;
+        return this.scalablelux$skyEmptinessMap;
     }
 
     @Override
     public void scalablelux$setSkyEmptinessMap(final boolean[] emptinessMap) {
-        this.skyEmptinessMap = emptinessMap;
+        this.scalablelux$skyEmptinessMap = emptinessMap;
     }
 
     @Override
     public boolean[] scalablelux$getBlockEmptinessMap() {
-        return this.blockEmptinessMap;
+        return this.scalablelux$blockEmptinessMap;
     }
 
     @Override
     public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap) {
-        this.blockEmptinessMap = emptinessMap;
+        this.scalablelux$blockEmptinessMap = emptinessMap;
     }
 
     /**

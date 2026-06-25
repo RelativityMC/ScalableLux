@@ -1,9 +1,6 @@
 package ca.spottedleaf.starlight.mixin.common.blockstate;
 
 import ca.spottedleaf.starlight.common.blockstate.ExtendedAbstractBlockState;
-import com.google.common.collect.ImmutableMap;
-import com.mojang.serialization.MapCodec;
-import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,7 +26,7 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
     private boolean canOcclude;
 
     @Unique
-    private boolean isConditionallyFullOpaque;
+    private boolean scalablelux$isConditionallyFullOpaque;
 
     protected BlockStateBaseMixin(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
         super(owner, propertyKeys, propertyValues);
@@ -43,12 +40,12 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
             at = @At("RETURN")
     )
     public void initLightAccessState(final CallbackInfo ci) {
-        this.isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
+        this.scalablelux$isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
     }
 
     @Override
     public final boolean scalablelux$isConditionallyFullOpaque() {
-        return this.isConditionallyFullOpaque;
+        return this.scalablelux$isConditionallyFullOpaque;
     }
 
 }

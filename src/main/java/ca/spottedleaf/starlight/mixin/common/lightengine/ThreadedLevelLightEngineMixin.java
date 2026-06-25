@@ -54,11 +54,11 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
     }
 
     @Unique
-    private final Long2IntOpenHashMap chunksBeingWorkedOn = new Long2IntOpenHashMap();
+    private final Long2IntOpenHashMap scalablelux$chunksBeingWorkedOn = new Long2IntOpenHashMap();
 
     @Unique
-    private void queueTaskForSection(final int chunkX, final int chunkY, final int chunkZ,
-                                     final Supplier<StarLightInterface.LightQueue.ChunkTasks> runnable) {
+    private void scalablelux$queueTaskForSection(final int chunkX, final int chunkY, final int chunkZ,
+                                                 final Supplier<StarLightInterface.LightQueue.ChunkTasks> runnable) {
         final ServerLevel world = (ServerLevel)this.scalablelux$getLightEngine().getWorld();
 
         final ChunkAccess center = this.scalablelux$getLightEngine().getAnyChunkNow(chunkX, chunkZ);
@@ -78,7 +78,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         if (!ChunkSystemHooks.isTicketThreadSafe() && !world.getChunkSource().chunkMap.mainThreadExecutor.isSameThread()) {
             // ticket logic is not safe to run off-main, re-schedule
             world.getChunkSource().chunkMap.mainThreadExecutor.execute(() -> {
-                this.queueTaskForSection(chunkX, chunkY, chunkZ, runnable);
+                this.scalablelux$queueTaskForSection(chunkX, chunkY, chunkZ, runnable);
             });
             return;
         }
@@ -99,8 +99,8 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         updateFuture.isTicketAdded = true;
 
         final int references;
-        synchronized (this.chunksBeingWorkedOn) {
-            references = this.chunksBeingWorkedOn.addTo(key, 1);
+        synchronized (this.scalablelux$chunksBeingWorkedOn) {
+            references = this.scalablelux$chunksBeingWorkedOn.addTo(key, 1);
         }
         if (references == 0) {
             final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
@@ -108,10 +108,10 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
         }
 
         Consumer<Void> cleanup = (final Void ignore) -> {
-            synchronized (this.chunksBeingWorkedOn) {
-                final int newReferences = this.chunksBeingWorkedOn.addTo(key, -1);
+            synchronized (this.scalablelux$chunksBeingWorkedOn) {
+                final int newReferences = this.scalablelux$chunksBeingWorkedOn.addTo(key, -1);
                 if (newReferences == 1) {
-                    this.chunksBeingWorkedOn.remove(key);
+                    this.scalablelux$chunksBeingWorkedOn.remove(key);
 
                     // ticket rm inside synchronized to avoid a race
                     final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
@@ -140,7 +140,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
     @Overwrite
     public void checkBlock(final BlockPos pos) {
         final BlockPos posCopy = pos.immutable();
-        this.queueTaskForSection(posCopy.getX() >> 4, posCopy.getY() >> 4, posCopy.getZ() >> 4, () -> {
+        this.scalablelux$queueTaskForSection(posCopy.getX() >> 4, posCopy.getY() >> 4, posCopy.getZ() >> 4, () -> {
             return this.scalablelux$getLightEngine().blockChange(posCopy);
         });
     }
@@ -160,7 +160,7 @@ public abstract class ThreadedLevelLightEngineMixin extends LevelLightEngine imp
      */
     @Overwrite
     public void updateSectionStatus(final SectionPos pos, final boolean notReady) {
-        this.queueTaskForSection(pos.getX(), pos.getY(), pos.getZ(), () -> {
+        this.scalablelux$queueTaskForSection(pos.getX(), pos.getY(), pos.getZ(), () -> {
             return this.scalablelux$getLightEngine().sectionChange(pos, notReady);
         });
     }
