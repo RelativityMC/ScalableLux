@@ -323,11 +323,21 @@ public final class StarLightInterface {
 
     public boolean hasSectionSkyLight(SectionPos sectionPos) {
         final ChunkAccess chunk = this.getAnyChunkNow(sectionPos.x(), sectionPos.z());
+
+        if (sectionPos.y() > this.maxLightSection || sectionPos.y() < this.minLightSection) {
+            return false;
+        }
+
         return chunk != null && !((ExtendedChunk) chunk).scalablelux$getSkyNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
     }
 
     public boolean hasSectionBlockLight(SectionPos sectionPos) {
         final ChunkAccess chunk = this.getAnyChunkNow(sectionPos.x(), sectionPos.z());
+
+        if (sectionPos.y() > this.maxLightSection || sectionPos.y() < this.minLightSection) {
+            return false;
+        }
+
         return chunk != null && !((ExtendedChunk) chunk).scalablelux$getBlockNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
     }
 
