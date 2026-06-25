@@ -4,15 +4,15 @@ import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 
 public interface ExtendedChunk {
 
-    public SWMRNibbleArray[] getBlockNibbles();
-    public void setBlockNibbles(final SWMRNibbleArray[] nibbles);
+    public SWMRNibbleArray[] scalablelux$getBlockNibbles();
+    public void scalablelux$setBlockNibbles(final SWMRNibbleArray[] nibbles);
 
-    public SWMRNibbleArray[] getSkyNibbles();
-    public void setSkyNibbles(final SWMRNibbleArray[] nibbles);
+    public SWMRNibbleArray[] scalablelux$getSkyNibbles();
+    public void scalablelux$setSkyNibbles(final SWMRNibbleArray[] nibbles);
 
-    public boolean[] getSkyEmptinessMap();
-    public void setSkyEmptinessMap(final boolean[] emptinessMap);
+    public boolean[] scalablelux$getSkyEmptinessMap();
+    public void scalablelux$setSkyEmptinessMap(final boolean[] emptinessMap);
 
-    public boolean[] getBlockEmptinessMap();
-    public void setBlockEmptinessMap(final boolean[] emptinessMap);
+    public boolean[] scalablelux$getBlockEmptinessMap();
+    public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap);
 }

@@ -41,16 +41,16 @@ public final class SaveUtil {
         boolean avoidLightCopy = ChunkSystemHooks.avoidLightCopy();
 
         // replace existing lighting data
-        SWMRNibbleArray.SaveState[] blockNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).getBlockNibbles().length];
-        SWMRNibbleArray.SaveState[] skyNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).getSkyNibbles().length];
+        SWMRNibbleArray.SaveState[] blockNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).scalablelux$getBlockNibbles().length];
+        SWMRNibbleArray.SaveState[] skyNibbleSaveStates = new SWMRNibbleArray.SaveState[((ExtendedChunk) chunk).scalablelux$getSkyNibbles().length];
         {
-            SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).getBlockNibbles();
+            SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).scalablelux$getBlockNibbles();
             for (int i = 0, nibblesLength = nibbles.length; i < nibblesLength; i++) {
                 blockNibbleSaveStates[i] = nibbles[i].getSaveState(!avoidLightCopy);
             }
         }
         {
-            SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).getSkyNibbles();
+            SWMRNibbleArray[] nibbles = ((ExtendedChunk) chunk).scalablelux$getSkyNibbles();
             for (int i = 0, nibblesLength = nibbles.length; i < nibblesLength; i++) {
                 skyNibbleSaveStates[i] = nibbles[i].getSaveState(!avoidLightCopy);
             }
@@ -125,8 +125,8 @@ public final class SaveUtil {
             }
         }
 
-        ((ExtendedChunk)into).setBlockNibbles(blockNibbles);
-        ((ExtendedChunk)into).setSkyNibbles(skyNibbles);
+        ((ExtendedChunk)into).scalablelux$setBlockNibbles(blockNibbles);
+        ((ExtendedChunk)into).scalablelux$setSkyNibbles(skyNibbles);
 
         into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
     }

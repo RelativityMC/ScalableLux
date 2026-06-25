@@ -134,11 +134,11 @@ public final class StarLightInterface {
                     return null;
                 }
 
-//                if (((ExtendedChunk)chunk).getSkyEmptinessMap() == null) {
+//                if (((ExtendedChunk)chunk).scalablelux$getSkyEmptinessMap() == null) {
 //                    return null;
 //                }
 
-                return ((ExtendedChunk)chunk).getSkyNibbles()[sectionY - StarLightInterface.this.minLightSection].toVanillaNibble();
+                return ((ExtendedChunk)chunk).scalablelux$getSkyNibbles()[sectionY - StarLightInterface.this.minLightSection].toVanillaNibble();
             }
 
             @Override
@@ -186,7 +186,7 @@ public final class StarLightInterface {
                     return null;
                 }
 
-                return ((ExtendedChunk)chunk).getBlockNibbles()[pos.getY() - StarLightInterface.this.minLightSection].toVanillaNibble();
+                return ((ExtendedChunk)chunk).scalablelux$getBlockNibbles()[pos.getY() - StarLightInterface.this.minLightSection].toVanillaNibble();
             }
 
             @Override
@@ -237,14 +237,14 @@ public final class StarLightInterface {
             y = sectionY << 4;
         }
 
-        final SWMRNibbleArray[] nibbles = ((ExtendedChunk)chunk).getSkyNibbles();
+        final SWMRNibbleArray[] nibbles = ((ExtendedChunk)chunk).scalablelux$getSkyNibbles();
         final SWMRNibbleArray immediate = nibbles[sectionY - minLightSection];
 
         if (!immediate.isNullNibbleVisible()) {
             return immediate.getVisible(x, y, z);
         }
 
-        final boolean[] emptinessMap = ((ExtendedChunk)chunk).getSkyEmptinessMap();
+        final boolean[] emptinessMap = ((ExtendedChunk)chunk).scalablelux$getSkyEmptinessMap();
 
         if (emptinessMap == null) {
             return 15;
@@ -297,7 +297,7 @@ public final class StarLightInterface {
             return 0;
         }
 
-        final SWMRNibbleArray nibble = ((ExtendedChunk)chunk).getBlockNibbles()[cy - minLightSection];
+        final SWMRNibbleArray nibble = ((ExtendedChunk)chunk).scalablelux$getBlockNibbles()[cy - minLightSection];
         return nibble.getVisible(blockPos.getX(), y, blockPos.getZ());
     }
 
@@ -323,12 +323,12 @@ public final class StarLightInterface {
 
     public boolean hasSectionSkyLight(SectionPos sectionPos) {
         final ChunkAccess chunk = this.getAnyChunkNow(sectionPos.x(), sectionPos.z());
-        return chunk != null && !((ExtendedChunk) chunk).getSkyNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
+        return chunk != null && !((ExtendedChunk) chunk).scalablelux$getSkyNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
     }
 
     public boolean hasSectionBlockLight(SectionPos sectionPos) {
         final ChunkAccess chunk = this.getAnyChunkNow(sectionPos.x(), sectionPos.z());
-        return chunk != null && !((ExtendedChunk) chunk).getBlockNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
+        return chunk != null && !((ExtendedChunk) chunk).scalablelux$getBlockNibbles()[sectionPos.y() - this.minLightSection].isNullNibbleVisible();
     }
 
     public boolean isClientSide() {
@@ -340,7 +340,7 @@ public final class StarLightInterface {
             // empty world
             return null;
         }
-        return ((ExtendedWorld)this.world).getAnyChunkImmediately(chunkX, chunkZ);
+        return ((ExtendedWorld)this.world).scalablelux$getAnyChunkImmediately(chunkX, chunkZ);
     }
 
     public boolean hasUpdates() {

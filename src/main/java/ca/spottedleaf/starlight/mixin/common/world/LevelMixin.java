@@ -12,12 +12,12 @@ import org.spongepowered.asm.mixin.Mixin;
 public abstract class LevelMixin implements LevelAccessor, AutoCloseable, ExtendedWorld {
 
     @Override
-    public LevelChunk getChunkAtImmediately(final int chunkX, final int chunkZ) {
+    public LevelChunk scalablelux$getChunkAtImmediately(final int chunkX, final int chunkZ) {
         return this.getChunkSource().getChunk(chunkX, chunkZ, false);
     }
 
     @Override
-    public ChunkAccess getAnyChunkImmediately(final int chunkX, final int chunkZ) {
+    public ChunkAccess scalablelux$getAnyChunkImmediately(final int chunkX, final int chunkZ) {
         return this.getChunkSource().getChunk(chunkX, chunkX, ChunkStatus.EMPTY, false);
     }
 }

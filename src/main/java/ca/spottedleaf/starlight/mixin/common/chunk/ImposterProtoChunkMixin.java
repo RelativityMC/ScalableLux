@@ -2,8 +2,6 @@ package ca.spottedleaf.starlight.mixin.common.chunk;
 
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
@@ -29,42 +27,42 @@ public abstract class ImposterProtoChunkMixin extends ProtoChunk implements Exte
     }
 
     @Override
-    public SWMRNibbleArray[] getBlockNibbles() {
-        return ((ExtendedChunk)this.wrapped).getBlockNibbles();
+    public SWMRNibbleArray[] scalablelux$getBlockNibbles() {
+        return ((ExtendedChunk)this.wrapped).scalablelux$getBlockNibbles();
     }
 
     @Override
-    public void setBlockNibbles(final SWMRNibbleArray[] nibbles) {
-        ((ExtendedChunk)this.wrapped).setBlockNibbles(nibbles);
+    public void scalablelux$setBlockNibbles(final SWMRNibbleArray[] nibbles) {
+        ((ExtendedChunk)this.wrapped).scalablelux$setBlockNibbles(nibbles);
     }
 
     @Override
-    public SWMRNibbleArray[] getSkyNibbles() {
-        return ((ExtendedChunk)this.wrapped).getSkyNibbles();
+    public SWMRNibbleArray[] scalablelux$getSkyNibbles() {
+        return ((ExtendedChunk)this.wrapped).scalablelux$getSkyNibbles();
     }
 
     @Override
-    public void setSkyNibbles(final SWMRNibbleArray[] nibbles) {
-        ((ExtendedChunk)this.wrapped).setSkyNibbles(nibbles);
+    public void scalablelux$setSkyNibbles(final SWMRNibbleArray[] nibbles) {
+        ((ExtendedChunk)this.wrapped).scalablelux$setSkyNibbles(nibbles);
     }
 
     @Override
-    public boolean[] getSkyEmptinessMap() {
-        return ((ExtendedChunk)this.wrapped).getSkyEmptinessMap();
+    public boolean[] scalablelux$getSkyEmptinessMap() {
+        return ((ExtendedChunk)this.wrapped).scalablelux$getSkyEmptinessMap();
     }
 
     @Override
-    public void setSkyEmptinessMap(final boolean[] emptinessMap) {
-        ((ExtendedChunk)this.wrapped).setSkyEmptinessMap(emptinessMap);
+    public void scalablelux$setSkyEmptinessMap(final boolean[] emptinessMap) {
+        ((ExtendedChunk)this.wrapped).scalablelux$setSkyEmptinessMap(emptinessMap);
     }
 
     @Override
-    public boolean[] getBlockEmptinessMap() {
-        return ((ExtendedChunk)this.wrapped).getBlockEmptinessMap();
+    public boolean[] scalablelux$getBlockEmptinessMap() {
+        return ((ExtendedChunk)this.wrapped).scalablelux$getBlockEmptinessMap();
     }
 
     @Override
-    public void setBlockEmptinessMap(final boolean[] emptinessMap) {
-        ((ExtendedChunk)this.wrapped).setBlockEmptinessMap(emptinessMap);
+    public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap) {
+        ((ExtendedChunk)this.wrapped).scalablelux$setBlockEmptinessMap(emptinessMap);
     }
 }

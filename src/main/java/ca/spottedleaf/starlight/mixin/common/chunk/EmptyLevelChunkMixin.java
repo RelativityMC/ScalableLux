@@ -17,34 +17,34 @@ public abstract class EmptyLevelChunkMixin extends LevelChunk implements Extende
     }
 
     @Override
-    public SWMRNibbleArray[] getBlockNibbles() {
+    public SWMRNibbleArray[] scalablelux$getBlockNibbles() {
         return StarLightEngine.getFilledEmptyLight(this.getLevel());
     }
 
     @Override
-    public void setBlockNibbles(final SWMRNibbleArray[] nibbles) {}
+    public void scalablelux$setBlockNibbles(final SWMRNibbleArray[] nibbles) {}
 
     @Override
-    public SWMRNibbleArray[] getSkyNibbles() {
+    public SWMRNibbleArray[] scalablelux$getSkyNibbles() {
         return StarLightEngine.getFilledEmptyLight(this.getLevel());
     }
 
     @Override
-    public void setSkyNibbles(final SWMRNibbleArray[] nibbles) {}
+    public void scalablelux$setSkyNibbles(final SWMRNibbleArray[] nibbles) {}
 
     @Override
-    public boolean[] getSkyEmptinessMap() {
+    public boolean[] scalablelux$getSkyEmptinessMap() {
         return null;
     }
 
     @Override
-    public void setSkyEmptinessMap(final boolean[] emptinessMap) {}
+    public void scalablelux$setSkyEmptinessMap(final boolean[] emptinessMap) {}
 
     @Override
-    public boolean[] getBlockEmptinessMap() {
+    public boolean[] scalablelux$getBlockEmptinessMap() {
         return null;
     }
 
     @Override
-    public void setBlockEmptinessMap(final boolean[] emptinessMap) {}
+    public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap) {}
 }

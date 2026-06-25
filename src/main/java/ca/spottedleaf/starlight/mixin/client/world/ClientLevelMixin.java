@@ -27,12 +27,12 @@ public abstract class ClientLevelMixin extends Level implements ExtendedWorld {
     public abstract ClientChunkCache getChunkSource();
 
     @Override
-    public final LevelChunk getChunkAtImmediately(final int chunkX, final int chunkZ) {
+    public final LevelChunk scalablelux$getChunkAtImmediately(final int chunkX, final int chunkZ) {
         return this.getChunkSource().getChunk(chunkX, chunkZ, false);
     }
 
     @Override
-    public final ChunkAccess getAnyChunkImmediately(int chunkX, int chunkZ) {
+    public final ChunkAccess scalablelux$getAnyChunkImmediately(int chunkX, int chunkZ) {
         return this.getChunkSource().getChunk(chunkX, chunkZ, false);
     }
 }

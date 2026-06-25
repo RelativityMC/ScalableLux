@@ -208,22 +208,22 @@ public final class SkyStarLightEngine extends StarLightEngine {
 
     @Override
     protected boolean[] getEmptinessMap(final ChunkAccess chunk) {
-        return ((ExtendedChunk)chunk).getSkyEmptinessMap();
+        return ((ExtendedChunk)chunk).scalablelux$getSkyEmptinessMap();
     }
 
     @Override
     protected void setEmptinessMap(final ChunkAccess chunk, final boolean[] to) {
-        ((ExtendedChunk)chunk).setSkyEmptinessMap(to);
+        ((ExtendedChunk)chunk).scalablelux$setSkyEmptinessMap(to);
     }
 
     @Override
     protected SWMRNibbleArray[] getNibblesOnChunk(final ChunkAccess chunk) {
-        return ((ExtendedChunk)chunk).getSkyNibbles();
+        return ((ExtendedChunk)chunk).scalablelux$getSkyNibbles();
     }
 
     @Override
     protected void setNibbles(final ChunkAccess chunk, final SWMRNibbleArray[] to) {
-        ((ExtendedChunk)chunk).setSkyNibbles(to);
+        ((ExtendedChunk)chunk).scalablelux$setSkyNibbles(to);
     }
 
     @Override
@@ -306,7 +306,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
         final BlockState conditionallyOpaqueState;
         this.recalcCenterPos.set(worldX, worldY, worldZ);
         int opacity = Math.max(1, centerState.getLightDampening());
-        if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
+        if (((ExtendedAbstractBlockState)centerState).scalablelux$isConditionallyFullOpaque()) {
             conditionallyOpaqueState = centerState;
         } else {
             conditionallyOpaqueState = null;
@@ -330,7 +330,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
 
             final BlockState neighbourState = this.getBlockState(offX, offY, offZ);
 
-            if (((ExtendedAbstractBlockState)neighbourState).isConditionallyFullOpaque()) {
+            if (((ExtendedAbstractBlockState)neighbourState).scalablelux$isConditionallyFullOpaque()) {
                 // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
                 // we don't read the blockstate because most of the time this is false, so using the faster
                 // known transparency lookup results in a net win
@@ -625,7 +625,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
             final BlockState current = this.getBlockState(worldX, startY, worldZ);
 
             final VoxelShape fromShape;
-            if (((ExtendedAbstractBlockState)above).isConditionallyFullOpaque()) {
+            if (((ExtendedAbstractBlockState)above).scalablelux$isConditionallyFullOpaque()) {
                 this.mutablePos2.set(worldX, startY + 1, worldZ);
                 fromShape = above.getFaceOcclusionShape(AxisDirection.NEGATIVE_Y.nms);
                 if (Shapes.faceShapeOccludes(Shapes.empty(), fromShape)) {
@@ -654,7 +654,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
 //            } else {
                 mutablePos.set(worldX, startY, worldZ);
                 long flags = 0L;
-                if (((ExtendedAbstractBlockState)current).isConditionallyFullOpaque()) {
+                if (((ExtendedAbstractBlockState)current).scalablelux$isConditionallyFullOpaque()) {
                     final VoxelShape cullingFace = current.getFaceOcclusionShape(AxisDirection.POSITIVE_Y.nms);
 
                     if (Shapes.faceShapeOccludes(fromShape, cullingFace)) {

@@ -47,7 +47,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     protected StarLightInterface lightEngine;
 
     @Override
-    public final StarLightInterface getLightEngine() {
+    public final StarLightInterface scalablelux$getLightEngine() {
         return this.lightEngine;
     }
 
@@ -219,13 +219,13 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     protected final Long2ObjectOpenHashMap<SWMRNibbleArray[]> skyLightMap = new Long2ObjectOpenHashMap<>();
 
     @Override
-    public void clientUpdateLight(final LightLayer lightType, final SectionPos pos,
-                                  final DataLayer nibble, final boolean trustEdges) {
+    public void scalablelux$clientUpdateLight(final LightLayer lightType, final SectionPos pos,
+                                              final DataLayer nibble, final boolean trustEdges) {
         if (((Object)this).getClass() != LevelLightEngine.class) {
             throw new IllegalStateException("This hook is for the CLIENT ONLY");
         }
         // data storage changed with new light impl
-        final ChunkAccess chunk = this.getLightEngine().getAnyChunkNow(pos.getX(), pos.getZ());
+        final ChunkAccess chunk = this.scalablelux$getLightEngine().getAnyChunkNow(pos.getX(), pos.getZ());
         switch (lightType) {
             case BLOCK: {
                 final SWMRNibbleArray[] blockNibbles = this.blockLightMap.computeIfAbsent(CoordinateUtils.getChunkKey(pos), (final long keyInMap) -> {
@@ -235,7 +235,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
                 blockNibbles[pos.getY() - WorldUtil.getMinLightSection(this.lightEngine.getWorld())] = SWMRNibbleArray.fromVanilla(nibble);
 
                 if (chunk != null) {
-                    ((ExtendedChunk)chunk).setBlockNibbles(blockNibbles);
+                    ((ExtendedChunk)chunk).scalablelux$setBlockNibbles(blockNibbles);
                     this.lightEngine.getLightAccess().onLightUpdate(LightLayer.BLOCK, pos);
                 }
                 break;
@@ -248,7 +248,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
                 skyNibbles[pos.getY() - WorldUtil.getMinLightSection(this.lightEngine.getWorld())] = SWMRNibbleArray.fromVanilla(nibble);
 
                 if (chunk != null) {
-                    ((ExtendedChunk)chunk).setSkyNibbles(skyNibbles);
+                    ((ExtendedChunk)chunk).scalablelux$setSkyNibbles(skyNibbles);
                     this.lightEngine.getLightAccess().onLightUpdate(LightLayer.SKY, pos);
                 }
                 break;
@@ -257,7 +257,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     }
 
     @Override
-    public void clientRemoveLightData(final ChunkPos chunkPos) {
+    public void scalablelux$clientRemoveLightData(final ChunkPos chunkPos) {
         if (((Object)this).getClass() != LevelLightEngine.class) {
             throw new IllegalStateException("This hook is for the CLIENT ONLY");
         }
@@ -266,7 +266,7 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
     }
 
     @Override
-    public void clientChunkLoad(final ChunkPos pos, final LevelChunk chunk) {
+    public void scalablelux$clientChunkLoad(final ChunkPos pos, final LevelChunk chunk) {
         if (((Object)this).getClass() != LevelLightEngine.class) {
             throw new IllegalStateException("This hook is for the CLIENT ONLY");
         }
@@ -274,10 +274,10 @@ public abstract class LevelLightEngineMixin implements LightEventListener, StarL
         final SWMRNibbleArray[] blockNibbles = this.blockLightMap.get(key);
         final SWMRNibbleArray[] skyNibbles = this.skyLightMap.get(key);
         if (blockNibbles != null) {
-            ((ExtendedChunk)chunk).setBlockNibbles(blockNibbles);
+            ((ExtendedChunk)chunk).scalablelux$setBlockNibbles(blockNibbles);
         }
         if (skyNibbles != null) {
-            ((ExtendedChunk)chunk).setSkyNibbles(skyNibbles);
+            ((ExtendedChunk)chunk).scalablelux$setSkyNibbles(skyNibbles);
         }
     }
 }

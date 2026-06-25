@@ -7,18 +7,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.world.level.chunk.ImposterProtoChunk;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public final class BlockStarLightEngine extends StarLightEngine {
 
@@ -28,22 +24,22 @@ public final class BlockStarLightEngine extends StarLightEngine {
 
     @Override
     protected boolean[] getEmptinessMap(final ChunkAccess chunk) {
-        return ((ExtendedChunk)chunk).getBlockEmptinessMap();
+        return ((ExtendedChunk)chunk).scalablelux$getBlockEmptinessMap();
     }
 
     @Override
     protected void setEmptinessMap(final ChunkAccess chunk, final boolean[] to) {
-        ((ExtendedChunk)chunk).setBlockEmptinessMap(to);
+        ((ExtendedChunk)chunk).scalablelux$setBlockEmptinessMap(to);
     }
 
     @Override
     protected SWMRNibbleArray[] getNibblesOnChunk(final ChunkAccess chunk) {
-        return ((ExtendedChunk)chunk).getBlockNibbles();
+        return ((ExtendedChunk)chunk).scalablelux$getBlockNibbles();
     }
 
     @Override
     protected void setNibbles(final ChunkAccess chunk, final SWMRNibbleArray[] to) {
-        ((ExtendedChunk)chunk).setBlockNibbles(to);
+        ((ExtendedChunk)chunk).scalablelux$setBlockNibbles(to);
     }
 
     @Override
@@ -104,7 +100,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
                     ((worldX + (worldZ << 6) + (worldY << (6 + 6)) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
                             | (emittedLevel & 0xFL) << (6 + 6 + 16)
                             | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
-                            | (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque() ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+                            | (((ExtendedAbstractBlockState)blockState).scalablelux$isConditionallyFullOpaque() ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
             );
         }
         // this also accounts for a change in emitted light that would cause a decrease
@@ -141,7 +137,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
         if (opacity >= 15) {
             return level; // TODO in older starlight, opacity >= 15 can go into the loop below, but it probably shouldn't
         }
-        if (((ExtendedAbstractBlockState)centerState).isConditionallyFullOpaque()) {
+        if (((ExtendedAbstractBlockState)centerState).scalablelux$isConditionallyFullOpaque()) {
             conditionallyOpaqueState = centerState;
         } else {
             conditionallyOpaqueState = null;
@@ -162,7 +158,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
             }
 
             final BlockState neighbourState = this.getBlockState(offX, offY, offZ);
-            if (((ExtendedAbstractBlockState)neighbourState).isConditionallyFullOpaque()) {
+            if (((ExtendedAbstractBlockState)neighbourState).scalablelux$isConditionallyFullOpaque()) {
                 // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
                 // we don't read the blockstate because most of the time this is false, so using the faster
                 // known transparency lookup results in a net win
@@ -251,7 +247,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
                     ((pos.getX() + (pos.getZ() << 6) + (pos.getY() << (6 + 6)) + this.coordinateOffset) & ((1L << (6 + 6 + 16)) - 1))
                             | (emittedLight & 0xFL) << (6 + 6 + 16)
                             | (((long)ALL_DIRECTIONS_BITSET) << (6 + 6 + 16 + 4))
-                            | (((ExtendedAbstractBlockState)blockState).isConditionallyFullOpaque() ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
+                            | (((ExtendedAbstractBlockState)blockState).scalablelux$isConditionallyFullOpaque() ? FLAG_HAS_SIDED_TRANSPARENT_BLOCKS : 0)
             );
 
 

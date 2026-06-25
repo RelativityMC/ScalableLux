@@ -47,7 +47,7 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
     }
 
     @Override
-    public final boolean isConditionallyFullOpaque() {
+    public final boolean scalablelux$isConditionallyFullOpaque() {
         return this.isConditionallyFullOpaque;
     }
 

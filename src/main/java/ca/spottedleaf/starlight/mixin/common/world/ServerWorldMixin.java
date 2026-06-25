@@ -34,7 +34,7 @@ public abstract class ServerWorldMixin extends Level implements WorldGenLevel, E
     }
 
     @Override
-    public final LevelChunk getChunkAtImmediately(final int chunkX, final int chunkZ) {
+    public final LevelChunk scalablelux$getChunkAtImmediately(final int chunkX, final int chunkZ) {
         final ChunkMap storage = this.chunkSource.chunkMap;
         final ChunkHolder holder = storage.getVisibleChunkIfPresent(CoordinateUtils.getChunkKey(chunkX, chunkZ));
 
@@ -48,7 +48,7 @@ public abstract class ServerWorldMixin extends Level implements WorldGenLevel, E
     }
 
     @Override
-    public final ChunkAccess getAnyChunkImmediately(final int chunkX, final int chunkZ) {
+    public final ChunkAccess scalablelux$getAnyChunkImmediately(final int chunkX, final int chunkZ) {
         final ChunkMap storage = this.chunkSource.chunkMap;
         final ChunkHolder holder = storage.getVisibleChunkIfPresent(CoordinateUtils.getChunkKey(chunkX, chunkZ));
 

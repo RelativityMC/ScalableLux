@@ -24,10 +24,10 @@ public abstract class LevelChunkMixin implements ExtendedChunk {
             at = @At("TAIL")
     )
     public void onTransitionToFull(ServerLevel serverLevel, ProtoChunk protoChunk, LevelChunk.PostLoadProcessor postLoadProcessor, CallbackInfo ci) {
-        this.setBlockNibbles(((ExtendedChunk)protoChunk).getBlockNibbles());
-        this.setSkyNibbles(((ExtendedChunk)protoChunk).getSkyNibbles());
-        this.setSkyEmptinessMap(((ExtendedChunk)protoChunk).getSkyEmptinessMap());
-        this.setBlockEmptinessMap(((ExtendedChunk)protoChunk).getBlockEmptinessMap());
+        this.scalablelux$setBlockNibbles(((ExtendedChunk)protoChunk).scalablelux$getBlockNibbles());
+        this.scalablelux$setSkyNibbles(((ExtendedChunk)protoChunk).scalablelux$getSkyNibbles());
+        this.scalablelux$setSkyEmptinessMap(((ExtendedChunk)protoChunk).scalablelux$getSkyEmptinessMap());
+        this.scalablelux$setBlockEmptinessMap(((ExtendedChunk)protoChunk).scalablelux$getBlockEmptinessMap());
     }
 
     /**

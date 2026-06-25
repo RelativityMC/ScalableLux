@@ -3,7 +3,6 @@ package ca.spottedleaf.starlight.mixin.common.chunk;
 import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 import ca.spottedleaf.starlight.common.light.StarLightEngine;
-import net.minecraft.core.Registry;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -41,42 +40,42 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
     private volatile boolean[] blockEmptinessMap;
 
     @Override
-    public SWMRNibbleArray[] getBlockNibbles() {
+    public SWMRNibbleArray[] scalablelux$getBlockNibbles() {
         return this.blockNibbles;
     }
 
     @Override
-    public void setBlockNibbles(final SWMRNibbleArray[] nibbles) {
+    public void scalablelux$setBlockNibbles(final SWMRNibbleArray[] nibbles) {
         this.blockNibbles = nibbles;
     }
 
     @Override
-    public SWMRNibbleArray[] getSkyNibbles() {
+    public SWMRNibbleArray[] scalablelux$getSkyNibbles() {
         return this.skyNibbles;
     }
 
     @Override
-    public void setSkyNibbles(final SWMRNibbleArray[] nibbles) {
+    public void scalablelux$setSkyNibbles(final SWMRNibbleArray[] nibbles) {
         this.skyNibbles = nibbles;
     }
 
     @Override
-    public boolean[] getSkyEmptinessMap() {
+    public boolean[] scalablelux$getSkyEmptinessMap() {
         return this.skyEmptinessMap;
     }
 
     @Override
-    public void setSkyEmptinessMap(final boolean[] emptinessMap) {
+    public void scalablelux$setSkyEmptinessMap(final boolean[] emptinessMap) {
         this.skyEmptinessMap = emptinessMap;
     }
 
     @Override
-    public boolean[] getBlockEmptinessMap() {
+    public boolean[] scalablelux$getBlockEmptinessMap() {
         return this.blockEmptinessMap;
     }
 
     @Override
-    public void setBlockEmptinessMap(final boolean[] emptinessMap) {
+    public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap) {
         this.blockEmptinessMap = emptinessMap;
     }
 
@@ -93,8 +92,8 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
     private void nullSources(ChunkPos chunkPos, UpgradeData upgradeData, LevelHeightAccessor levelHeightAccessor, PalettedContainerFactory palettedContainerFactory, long l, LevelChunkSection[] levelChunkSections, BlendingData blendingData, CallbackInfo ci) {
         this.skyLightSources = null;
         if (!((Object)this instanceof ImposterProtoChunk)) {
-            this.setBlockNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
-            this.setSkyNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
+            this.scalablelux$setBlockNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
+            this.scalablelux$setSkyNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
         }
     }
 
