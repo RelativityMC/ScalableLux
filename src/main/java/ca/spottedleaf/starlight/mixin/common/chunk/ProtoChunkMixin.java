@@ -24,6 +24,6 @@ public abstract class ProtoChunkMixin implements ExtendedChunk {
     )
     private boolean skipLightSources(final ChunkSkyLightSources instance, final BlockGetter blockGetter,
                                      final int x, final int y, final int z) {
-        return false;
+        return instance != null ? instance.update(blockGetter, x, y, z) : false; // handle unmanaged lighting
     }
 }

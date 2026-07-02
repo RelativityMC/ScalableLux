@@ -10,16 +10,18 @@
     "common.chunk.ImposterProtoChunkMixin",
     "common.chunk.LevelChunkMixin",
     "common.chunk.ProtoChunkMixin",
+    "common.lightengine.ChunkMapMixin",
     "common.lightengine.LevelLightEngineMixin",
     "common.lightengine.ThreadedLevelLightEngineMixin",
-    "common.world.SerializableChunkDataMixin",
     "common.world.LevelMixin",
+    "common.world.SerializableChunkDataMixin",
     "common.world.ServerWorldMixin",
     "common.world.WorldGenRegionMixin"
   ],
   "client": [
     "client.multiplayer.ClientPacketListenerMixin",
-    "client.world.ClientLevelMixin"
+    "client.world.ClientLevelMixin",
+    "common.lightengine.ClientChunkCacheMixin"
   ],
   "injectors": {
     "defaultRequire": 1

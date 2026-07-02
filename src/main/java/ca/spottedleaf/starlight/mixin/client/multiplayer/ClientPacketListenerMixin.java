@@ -1,6 +1,8 @@
 package ca.spottedleaf.starlight.mixin.client.multiplayer;
 
-import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
+import ca.spottedleaf.starlight.common.light.ClientStarLightLightingProvider;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -58,22 +60,26 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
      * Call the runnable immediately to prevent desync
      * @author Spottedleaf
      */
-    @Redirect(
+    @WrapOperation(
             method = "handleLightUpdatePacket",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/multiplayer/ClientLevel;queueLightUpdate(Ljava/lang/Runnable;)V"
             )
     )
-    private void starlightCallUpdateImmediately(final ClientLevel instance, final Runnable runnable) {
-        runnable.run();
+    private void starlightCallUpdateImmediately(final ClientLevel instance, final Runnable runnable, final Operation<Void> original) {
+        if (this.level.getChunkSource().getLightEngine() instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            runnable.run();
+        } else {
+            original.call(instance, runnable);
+        }
     }
 
     /**
      * Re-route light update packet to our own logic
      * @author Spottedleaf
      */
-    @Redirect(
+    @WrapOperation(
             method = "readSectionList",
             at = @At(
                     target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;queueSectionData(Lnet/minecraft/world/level/LightLayer;Lnet/minecraft/core/SectionPos;Lnet/minecraft/world/level/chunk/DataLayer;)V",
@@ -82,8 +88,12 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
             )
     )
     private void loadLightDataHook(final LevelLightEngine lightEngine, final LightLayer lightType, final SectionPos pos,
-                                   final @Nullable DataLayer nibble) {
-        ((StarLightLightingProvider)this.level.getChunkSource().getLightEngine()).scalablelux$clientUpdateLight(lightType, pos, nibble, true);
+                                   final @Nullable DataLayer nibble, final Operation<Void> original) {
+        if (this.level.getChunkSource().getLightEngine() instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            clientStarLightLightingProvider.scalablelux$clientUpdateLight(lightType, pos, nibble, true);
+        } else {
+            original.call(lightEngine, lightType, pos, nibble);
+        }
     }
 
 
@@ -91,21 +101,25 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
      * Avoid calling Vanilla's logic here, and instead call our own.
      * @author Spottedleaf
      */
-    @Redirect(
+    @WrapOperation(
             method = "handleForgetLevelChunk",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;queueLightRemoval(Lnet/minecraft/network/protocol/game/ClientboundForgetLevelChunkPacket;)V"
             )
     )
-    private void unloadLightDataHook(final ClientPacketListener instance, final ClientboundForgetLevelChunkPacket clientboundForgetLevelChunkPacket) {
-        ((StarLightLightingProvider)this.level.getChunkSource().getLightEngine()).scalablelux$clientRemoveLightData(new ChunkPos(clientboundForgetLevelChunkPacket.pos().x(), clientboundForgetLevelChunkPacket.pos().z()));
+    private void unloadLightDataHook(final ClientPacketListener instance, final ClientboundForgetLevelChunkPacket packet, final Operation<Void> original) {
+        if (this.level.getChunkSource().getLightEngine() instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            clientStarLightLightingProvider.scalablelux$clientRemoveLightData(new ChunkPos(packet.pos().x(), packet.pos().z()));
+        } else {
+            original.call(instance, packet);
+        }
     }
 
     /**
      * Don't call vanilla's load logic
      */
-    @Redirect(
+    @WrapOperation(
             method = "handleLevelChunkWithLight",
             at = @At(
                     target = "Lnet/minecraft/client/multiplayer/ClientLevel;queueLightUpdate(Ljava/lang/Runnable;)V",
@@ -113,8 +127,12 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
                     ordinal = 0
             )
     )
-    private void postChunkLoadHookRedirect(final ClientLevel instance, final Runnable runnable) {
-        // don't call vanilla's logic, see below
+    private void postChunkLoadHookRedirect(final ClientLevel instance, final Runnable runnable, Operation<Void> original) {
+        if (this.level.getChunkSource().getLightEngine() instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            // don't call vanilla's logic, see below
+        } else {
+            original.call(instance, runnable);
+        }
     }
 
     /**
@@ -127,19 +145,24 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
                     value = "RETURN"
             )
     )
-    private void postChunkLoadHook(final ClientboundLevelChunkWithLightPacket clientboundLevelChunkWithLightPacket, final CallbackInfo ci) {
-        final int chunkX = clientboundLevelChunkWithLightPacket.getX();
-        final int chunkZ = clientboundLevelChunkWithLightPacket.getZ();
-        final LevelChunk chunk = this.level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
-        if (chunk == null) {
-            // failed to load
-            return;
-        }
-        // load in light data from packet immediately
-        this.applyLightData(chunkX, chunkZ, clientboundLevelChunkWithLightPacket.getLightData(), true);
-        ((StarLightLightingProvider)this.level.getChunkSource().getLightEngine()).scalablelux$clientChunkLoad(new ChunkPos(chunkX, chunkZ), chunk);
+    private void postChunkLoadHook(final ClientboundLevelChunkWithLightPacket packet, final CallbackInfo ci) {
+        if (this.level.getChunkSource().getLightEngine() instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            final int chunkX = packet.getX();
+            final int chunkZ = packet.getZ();
+            final LevelChunk chunk = this.level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
+            if (chunk == null) {
+                // failed to load
+                return;
+            }
+            // load in light data from packet immediately
+            this.applyLightData(chunkX, chunkZ, packet.getLightData(), true);
+            clientStarLightLightingProvider.scalablelux$clientChunkLoad(new ChunkPos(chunkX, chunkZ), chunk);
 
-        // we need this for the update chunk status call, so that it can tell starlight what sections are empty and such
-        this.enableChunkLight(chunk, chunkX, chunkZ);
+            // we need this for the update chunk status call, so that it can tell starlight what sections are empty and such
+            this.enableChunkLight(chunk, chunkX, chunkZ);
+
+            // vanilla no longer need this since 26.2
+            // this.minecraft.levelRenderer.onChunkReadyToRender(chunk.getPos());
+        }
     }
 }

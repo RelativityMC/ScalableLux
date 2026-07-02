@@ -27,3 +27,7 @@ mutable field net/minecraft/world/level/lighting/LevelLightEngine skyEngine Lnet
 
 # ThreadedLevelLightEngine
 accessible class net/minecraft/server/level/ThreadedLevelLightEngine$TaskType
+
+extendable method net/minecraft/server/level/ThreadedLevelLightEngine runUpdate ()V
+extendable method net/minecraft/server/level/ThreadedLevelLightEngine addTask (IILnet/minecraft/server/level/ThreadedLevelLightEngine$TaskType;Ljava/lang/Runnable;)V
+extendable method net/minecraft/server/level/ThreadedLevelLightEngine addTask (IILjava/util/function/IntSupplier;Lnet/minecraft/server/level/ThreadedLevelLightEngine$TaskType;Ljava/lang/Runnable;)V

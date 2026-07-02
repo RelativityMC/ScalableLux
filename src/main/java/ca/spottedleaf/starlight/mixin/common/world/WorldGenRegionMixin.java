@@ -1,10 +1,12 @@
 package ca.spottedleaf.starlight.mixin.common.world;
 
+import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -24,9 +26,11 @@ public abstract class WorldGenRegionMixin implements WorldGenLevel {
      */
     @Override
     public int getBrightness(final LightLayer lightLayer, final BlockPos blockPos) {
-        final ChunkAccess chunk = this.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
-        if (!chunk.isLightCorrect()) {
-            return 0;
+        if (this.getLightEngine() instanceof StarLightLightingProvider) {
+            final ChunkAccess chunk = this.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
+            if (!chunk.isLightCorrect()) {
+                return 0;
+            }
         }
         return this.getLightEngine().getLayerListener(lightLayer).getLightValue(blockPos);
     }
@@ -37,9 +41,11 @@ public abstract class WorldGenRegionMixin implements WorldGenLevel {
      */
     @Override
     public int getRawBrightness(final BlockPos blockPos, final int subtract) {
-        final ChunkAccess chunk = this.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
-        if (!chunk.isLightCorrect()) {
-            return 0;
+        if (this.getLightEngine() instanceof StarLightLightingProvider) {
+            final ChunkAccess chunk = this.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
+            if (!chunk.isLightCorrect()) {
+                return 0;
+            }
         }
         return this.getLightEngine().getRawBrightness(blockPos, subtract);
     }

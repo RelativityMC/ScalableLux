@@ -1,8 +1,11 @@
 package ca.spottedleaf.starlight.mixin.common.world;
 
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
+import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
 import ca.spottedleaf.starlight.common.util.SaveUtil;
 import ca.spottedleaf.starlight.common.world.ExtendedSerializableChunkData;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
@@ -16,7 +19,6 @@ import net.minecraft.world.level.lighting.LayerLightEventListener;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(SerializableChunkData.class)
@@ -47,7 +49,9 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             at = @At("RETURN")
     )
     private static void prepareSaveLightHook(ServerLevel world, ChunkAccess chunk, CallbackInfoReturnable<SerializableChunkData> cir) {
-        SaveUtil.prepareSaveVanillaLightHook(world, chunk, cir.getReturnValue());
+        if (world.getLightEngine() instanceof StarLightLightingProvider) {
+            SaveUtil.prepareSaveVanillaLightHook(world, chunk, cir.getReturnValue());
+        }
     }
 
     /**
@@ -58,12 +62,18 @@ public abstract class SerializableChunkDataMixin implements ExtendedSerializable
             method = "read",
             at = @At("RETURN")
     )
-    private void loadLightHook(ServerLevel serverLevel, PoiManager poiManager, RegionStorageInfo regionStorageInfo, ChunkPos chunkPos, CallbackInfoReturnable<ProtoChunk> cir) {
-        SaveUtil.loadVanillaLightHook(serverLevel, (SerializableChunkData) (Object) this, cir.getReturnValue());
+    private void loadLightHook(ServerLevel level, PoiManager poiManager, RegionStorageInfo regionStorageInfo, ChunkPos chunkPos, CallbackInfoReturnable<ProtoChunk> cir) {
+        if (level.getLightEngine() instanceof StarLightLightingProvider) {
+            SaveUtil.loadVanillaLightHook(level, (SerializableChunkData) (Object) this, cir.getReturnValue());
+        }
     }
 
-    @Redirect(method = "copyOf", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LayerLightEventListener;getDataLayerData(Lnet/minecraft/core/SectionPos;)Lnet/minecraft/world/level/chunk/DataLayer;"), require = 2)
-    private static DataLayer noopVanillaLightRead(LayerLightEventListener instance, SectionPos sectionPos) {
-        return null;
+    @WrapOperation(method = "copyOf", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LayerLightEventListener;getDataLayerData(Lnet/minecraft/core/SectionPos;)Lnet/minecraft/world/level/chunk/DataLayer;"), require = 2)
+    private static DataLayer noopVanillaLightRead(LayerLightEventListener instance, SectionPos sectionPos, Operation<DataLayer> original, final ServerLevel level, final ChunkAccess chunk) {
+        if (level.getLightEngine() instanceof StarLightLightingProvider) {
+            return null;
+        } else {
+            return original.call(instance, sectionPos);
+        }
     }
 }

@@ -47,4 +47,9 @@ public abstract class EmptyLevelChunkMixin extends LevelChunk implements Extende
 
     @Override
     public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap) {}
+
+    @Override
+    public boolean scalablelux$usingStarlight() {
+        return false;
+    }
 }

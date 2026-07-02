@@ -3,7 +3,11 @@ package ca.spottedleaf.starlight.mixin.common.chunk;
 import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
 import ca.spottedleaf.starlight.common.light.SWMRNibbleArray;
 import ca.spottedleaf.starlight.common.light.StarLightEngine;
+import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import net.minecraft.world.level.BlockAndLightGetter;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
@@ -12,12 +16,12 @@ import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.levelgen.blending.BlendingData;
 import net.minecraft.world.level.lighting.ChunkSkyLightSources;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ChunkAccess.class)
@@ -27,6 +31,9 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
     protected ChunkSkyLightSources skyLightSources;
 
 
+    @Shadow
+    @Final
+    protected LevelHeightAccessor levelHeightAccessor;
     @Unique
     private volatile SWMRNibbleArray[] scalablelux$blockNibbles;
 
@@ -89,11 +96,13 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
                     value = "RETURN"
             )
     )
-    private void nullSources(ChunkPos chunkPos, UpgradeData upgradeData, LevelHeightAccessor levelHeightAccessor, PalettedContainerFactory palettedContainerFactory, long l, LevelChunkSection[] levelChunkSections, BlendingData blendingData, CallbackInfo ci) {
-        this.skyLightSources = null;
-        if (!((Object)this instanceof ImposterProtoChunk)) {
-            this.scalablelux$setBlockNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
-            this.scalablelux$setSkyNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
+    private void nullSources(CallbackInfo ci) {
+        if (scalablelux$usingStarlight()) {
+            this.skyLightSources = null;
+            if (!((Object)this instanceof ImposterProtoChunk)) {
+                this.scalablelux$setBlockNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
+                this.scalablelux$setSkyNibbles(StarLightEngine.getFilledEmptyLight(levelHeightAccessor));
+            }
         }
     }
 
@@ -101,12 +110,19 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
      * @reason Remove unused skylight sources
      * @author Spottedleaf
      */
-    @Redirect(
+    @WrapWithCondition(
             method = "initializeLightSources",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/level/lighting/ChunkSkyLightSources;fillFrom(Lnet/minecraft/world/level/chunk/ChunkAccess;)V"
             )
     )
-    private void skipInit(final ChunkSkyLightSources instance, final ChunkAccess chunkAccess) {}
+    private boolean skipInit(final ChunkSkyLightSources instance, final ChunkAccess chunkAccess) {
+        return !scalablelux$usingStarlight();
+    }
+
+    @Unique
+    public boolean scalablelux$usingStarlight() {
+        return this.levelHeightAccessor instanceof BlockAndLightGetter getter && getter.getLightEngine() instanceof StarLightLightingProvider starLightLightingProvider;
+    }
 }

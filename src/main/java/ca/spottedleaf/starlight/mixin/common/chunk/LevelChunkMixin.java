@@ -1,6 +1,9 @@
 package ca.spottedleaf.starlight.mixin.common.chunk;
 
 import ca.spottedleaf.starlight.common.chunk.ExtendedChunk;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -43,6 +46,6 @@ public abstract class LevelChunkMixin implements ExtendedChunk {
     )
     private boolean skipLightSources(final ChunkSkyLightSources instance, final BlockGetter blockGetter,
                                      final int x, final int y, final int z) {
-        return false;
+        return instance != null ? instance.update(blockGetter, x, y, z) : false; // handle unmanaged lighting
     }
 }

@@ -15,4 +15,6 @@ public interface ExtendedChunk {
 
     public boolean[] scalablelux$getBlockEmptinessMap();
     public void scalablelux$setBlockEmptinessMap(final boolean[] emptinessMap);
+
+    public boolean scalablelux$usingStarlight();
 }

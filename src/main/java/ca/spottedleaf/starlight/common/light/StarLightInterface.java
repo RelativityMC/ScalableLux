@@ -584,42 +584,53 @@ public final class StarLightInterface {
         }
     }
 
+    public boolean needsScheduling() {
+        if (this.lightQueue instanceof ConcurrentLightQueue concurrentLightQueue) {
+            return !concurrentLightQueue.dirtyPos.isEmpty();
+        } else {
+            return this.hasUpdates();
+        }
+    }
+
     private static final AtomicInteger INSTANCE_COUNTER = new AtomicInteger(0);
     private static final CompletableFuture<Void> COMPLETED_FUTURE = CompletableFuture.completedFuture(null);
     private final int instanceId = INSTANCE_COUNTER.getAndIncrement();
 
     private void schedulePropagation0(ThreadedLevelLightEngine threadedLevelLightEngine) {
         ConcurrentLightQueue queue = (ConcurrentLightQueue) this.lightQueue;
-        synchronized (queue) {
-            while (!queue.dirtyPos.isEmpty()) {
-                final long pos = queue.dirtyPos.dequeueLong();
-                SchedulingUtil.scheduleTask(
-                        this.instanceId,
-                        () -> {
-                            try {
-                                final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
-                                final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
-
-                                LightQueue.ChunkTasks tasks = queue.takeTask(pos);
-                                if (tasks != null) {
-                                    try {
-                                        handleUpdateInternal(tasks, skyEngine, blockEngine);
-                                    } finally {
-                                        this.releaseSkyLightEngine(skyEngine);
-                                        this.releaseBlockLightEngine(blockEngine);
-                                    }
-
-                                    threadedLevelLightEngine.tryScheduleUpdate();
-                                }
-                            } catch (Throwable t) {
-                                t.printStackTrace();
-                            }
-                        },
-                        CoordinateUtils.getChunkX(pos),
-                        CoordinateUtils.getChunkZ(pos),
-                        2
-                );
+        while (true) {
+            final long pos;
+            LongPriorityQueue dirtyPos = queue.dirtyPos;
+            synchronized (dirtyPos) {
+                if (dirtyPos.isEmpty()) break;
+                pos = dirtyPos.dequeueLong();
             }
+            SchedulingUtil.scheduleTask(
+                    this.instanceId,
+                    () -> {
+                        try {
+                            final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
+                            final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
+
+                            LightQueue.ChunkTasks tasks = queue.takeTask(pos);
+                            if (tasks != null) {
+                                try {
+                                    handleUpdateInternal(tasks, skyEngine, blockEngine);
+                                } finally {
+                                    this.releaseSkyLightEngine(skyEngine);
+                                    this.releaseBlockLightEngine(blockEngine);
+                                }
+
+                                threadedLevelLightEngine.tryScheduleUpdate();
+                            }
+                        } catch (Throwable t) {
+                            t.printStackTrace();
+                        }
+                    },
+                    CoordinateUtils.getChunkX(pos),
+                    CoordinateUtils.getChunkZ(pos),
+                    2
+            );
         }
     }
 
@@ -631,34 +642,34 @@ public final class StarLightInterface {
 //    }
 
     private void handleUpdateInternal(LightQueue.ChunkTasks task, SkyStarLightEngine skyEngine, BlockStarLightEngine blockEngine) { // keep indentation
-                if (task.lightTasks != null) {
-                    for (final Runnable run : task.lightTasks) {
-                        run.run();
-                    }
-                }
+        if (task.lightTasks != null) {
+            for (final Runnable run : task.lightTasks) {
+                run.run();
+            }
+        }
 
-                final long coordinate = task.chunkCoordinate;
-                final int chunkX = CoordinateUtils.getChunkX(coordinate);
-                final int chunkZ = CoordinateUtils.getChunkZ(coordinate);
+        final long coordinate = task.chunkCoordinate;
+        final int chunkX = CoordinateUtils.getChunkX(coordinate);
+        final int chunkZ = CoordinateUtils.getChunkZ(coordinate);
 
-                final Set<BlockPos> positions = task.changedPositions;
-                final Boolean[] sectionChanges = task.changedSectionSet;
+        final Set<BlockPos> positions = task.changedPositions;
+        final Boolean[] sectionChanges = task.changedSectionSet;
 
-                if (skyEngine != null && (!positions.isEmpty() || sectionChanges != null)) {
-                    skyEngine.blocksChangedInChunk(this.lightAccess, chunkX, chunkZ, positions, sectionChanges);
-                }
-                if (blockEngine != null && (!positions.isEmpty() || sectionChanges != null)) {
-                    blockEngine.blocksChangedInChunk(this.lightAccess, chunkX, chunkZ, positions, sectionChanges);
-                }
+        if (skyEngine != null && (!positions.isEmpty() || sectionChanges != null)) {
+            skyEngine.blocksChangedInChunk(this.lightAccess, chunkX, chunkZ, positions, sectionChanges);
+        }
+        if (blockEngine != null && (!positions.isEmpty() || sectionChanges != null)) {
+            blockEngine.blocksChangedInChunk(this.lightAccess, chunkX, chunkZ, positions, sectionChanges);
+        }
 
-                if (skyEngine != null && task.queuedEdgeChecksSky != null) {
-                    skyEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ, task.queuedEdgeChecksSky);
-                }
-                if (blockEngine != null && task.queuedEdgeChecksBlock != null) {
-                    blockEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ, task.queuedEdgeChecksBlock);
-                }
+        if (skyEngine != null && task.queuedEdgeChecksSky != null) {
+            skyEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ, task.queuedEdgeChecksSky);
+        }
+        if (blockEngine != null && task.queuedEdgeChecksBlock != null) {
+            blockEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ, task.queuedEdgeChecksBlock);
+        }
 
-                task.onComplete.complete(null);
+        task.onComplete.complete(null);
     }
 
 

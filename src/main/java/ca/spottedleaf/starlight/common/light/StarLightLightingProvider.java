@@ -1,5 +1,7 @@
 package ca.spottedleaf.starlight.common.light;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LightLayer;
@@ -8,13 +10,12 @@ import net.minecraft.world.level.chunk.LevelChunk;
 
 public interface StarLightLightingProvider {
 
-    public StarLightInterface scalablelux$getLightEngine();
+    StarLightInterface scalablelux$getLightEngine();
 
-    public void scalablelux$clientUpdateLight(final LightLayer lightType, final SectionPos pos,
-                                              final DataLayer nibble, final boolean trustEdges);
+    LongOpenHashSet scalablelux$getLightingEnabledChunks();
 
-    public void scalablelux$clientRemoveLightData(final ChunkPos chunkPos);
+    Long2ObjectOpenHashMap<SWMRNibbleArray[]> scalablelux$getBlockLightMap();
 
-    public void scalablelux$clientChunkLoad(final ChunkPos pos, final LevelChunk chunk);
+    Long2ObjectOpenHashMap<SWMRNibbleArray[]> scalablelux$getSkyLightMap();
 
 }
