@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Tue, 31 Dec 2024 14:09:26 +0800
+Subject: [PATCH] Buildscript setup
+
+
+diff --git a/build.gradle b/build.gradle
+index 1f784b0..caadbcb 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -21,7 +21,7 @@ loom.runs.all {
+ def getGitCommit = { ->
+     def stdout = providers.exec {
+         commandLine 'git', 'rev-parse', '--short', 'HEAD'
+-//        workingDir = ".."
++        workingDir = ".."
+     }.standardOutput.asText.get().trim()
+     return stdout
+ }
+diff --git a/settings.gradle b/settings.gradle
+index 59b33fb..72ebf6e 100644
+--- a/settings.gradle
++++ b/settings.gradle
+@@ -11,7 +11,7 @@ pluginManagement {
+ 
+ rootProject.name = "ScalableLux"
+ 
+-includeBuild('FlowSched') {
++includeBuild('../FlowSched') {
+     dependencySubstitution {
+         substitute module('com.ishland.flowsched:flowsched') using project(':')
+     }
