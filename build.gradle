@@ -2,6 +2,7 @@ plugins {
     id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT'
     id 'maven-publish'
     id 'com.gradleup.shadow' version '9.4.0'
+    id 'me.modmuss50.mod-publish-plugin' version "2.1.1"
 }
 
 configurations {
@@ -25,9 +26,30 @@ def getGitCommit = { ->
     return stdout
 }
 
+String getVersionSuffix() {
+    def stdout = providers.exec {
+        commandLine 'git', 'describe', '--tags', '--dirty', '--broken'
+    }.standardOutput.asText.get()
+    stdout = stdout.toString().strip()
+    def suffix = ""
+    if (stdout.endsWith("-dirty")) {
+        stdout = stdout.substring(0, stdout.length() - "-dirty".length())
+        suffix = "-dirty"
+    }
+    if (stdout.endsWith("-broken")) {
+        stdout = stdout.substring(0, stdout.length() - "-broken".length())
+        suffix = "-broken"
+    }
+    if (stdout.indexOf('-') < 0) {
+        return "0" + suffix;
+    }
+    def split = stdout.split('-')
+    return split[split.length - 2] + suffix
+}
+
 base {
     archivesName = project.archives_base_name
-    version = project.mod_version + "+fabric." + getGitCommit()
+    version = project.mod_version + "." + getVersionSuffix()
     group = project.maven_group
 }
 
@@ -49,10 +71,11 @@ dependencies {
 }
 
 processResources {
-    inputs.property "version", project.version
+    inputs.property "version", project.version + "+" + project.minecraft_version
+    inputs.property "loader_version", project.loader_version
 
     filesMatching("fabric.mod.json") {
-        expand "version": project.version, "minecraft_version": minecraft_version, "loader_version": loader_version, "mod_version": mod_version
+        expand "version": project.version + "+" + project.minecraft_version, "loader_version": project.loader_version
     }
 }
 
@@ -117,5 +140,60 @@ publishing {
     repositories {
         // uncomment to publish to the local maven
         // mavenLocal()
+    }
+}
+
+
+def ghaChangelog = System.getenv("OVERRIDE_CHANGELOG")
+if (ghaChangelog == null) {
+    ghaChangelog = com.ishland.scalablelux.buildscript.ParseGitHubActionChangelog.getChangelog()
+}
+
+afterEvaluate {
+    logger.lifecycle("Version String: ${version}")
+    logger.lifecycle(ghaChangelog)
+}
+
+publishMods {
+    changelog = ghaChangelog
+    modLoaders.add("fabric")
+
+    def envDisplayName = System.getenv("OVERRIDE_DISPLAY_NAME")
+    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for " + project.minecraft_version)
+
+    def envType = System.getenv("OVERRIDE_RELEASE_TYPE")
+    type = envType != null ? me.modmuss50.mpp.ReleaseType.valueOf(envType) : me.modmuss50.mpp.ReleaseType.ALPHA
+
+    it.version = project.version + "+" + project.minecraft_version.replaceAll("-snapshot-", "-snap-")
+
+    def cfVersions = project.curseforge_minecraft_versions.split(",")
+    if (cfVersions.length != 0) {
+        def cfOptions = curseforgeOptions {
+            accessToken = System.getenv("CURSEFORGE_TOKEN")
+            cfVersions.each { minecraftVersions.add(it.trim()) }
+            client = true
+            server = true
+            changelogType = "markdown"
+            javaVersions.add(JavaVersion.VERSION_25)
+        }
+
+        curseforge("curseforgePackage") {
+            from cfOptions
+            file = shadowJar.archiveFile
+            projectId = "1055925"
+        }
+    }
+
+    {
+        def mrOptions = modrinthOptions {
+            accessToken = System.getenv("MODRINTH_TOKEN")
+            minecraftVersions.add(project.minecraft_version)
+        }
+
+        modrinth("modrinthPackage") {
+            from mrOptions
+            file = shadowJar.archiveFile
+            projectId = "Ps1zyz6x"
+        }
     }
 }

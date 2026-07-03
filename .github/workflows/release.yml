@@ -1,14 +1,35 @@
-name: build
+name: release
 
 on:
-  push: {}
-  pull_request: {}
-
-permissions:
-  packages: read
+  workflow_dispatch:
+    inputs:
+      changelog:
+        required: true
+        type: string
+        description: changelog
+      display_name:
+        required: true
+        type: string
+        description: display name
+      release_type:
+        required: true
+        type: choice
+        description: release type
+        options:
+          - ALPHA
+          - BETA
+          - RELEASE
+      dry_run:
+        required: true
+        type: choice
+        description: dry run
+        default: YES_DRYRUN
+        options:
+          - YES_DRYRUN
+          - NO_DRYRUN
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -36,16 +57,17 @@ jobs:
 
       - name: upload to modrinth and curseforge
         run: ./gradlew publishMods
-        if: github.ref == 'refs/heads/ver/26.2.0'
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_UPLOAD_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
-          GITHUB_EVENT_RAW_PATH: ${{ github.event_path }}
+          OVERRIDE_CHANGELOG: ${{ inputs.changelog }}
+          OVERRIDE_DISPLAY_NAME: ${{ inputs.display_name }}
+          OVERRIDE_RELEASE_TYPE: ${{ inputs.release_type }}
+          PUBLISH_DRY_RUN: ${{ inputs.dry_run }}
         continue-on-error: true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: Artifacts
+          name: Artifact
           path: 'build/libs/*.jar'
-
