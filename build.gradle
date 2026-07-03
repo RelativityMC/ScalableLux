@@ -159,7 +159,7 @@ publishMods {
     modLoaders.add("fabric")
 
     def envDisplayName = System.getenv("OVERRIDE_DISPLAY_NAME")
-    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for " + project.minecraft_version)
+    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for fabric " + project.minecraft_version)
 
     def envType = System.getenv("OVERRIDE_RELEASE_TYPE")
     type = envType != null ? me.modmuss50.mpp.ReleaseType.valueOf(envType) : me.modmuss50.mpp.ReleaseType.ALPHA
