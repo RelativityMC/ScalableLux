@@ -5,7 +5,7 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index caadbcb..dc1e9c1 100644
+index 31795f3..f432fdd 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
@@ -54,7 +54,7 @@ index caadbcb..dc1e9c1 100644
  clean.dependsOn gradle.includedBuild('FlowSched').task(':clean')
  
  // make build reproducible
-@@ -156,7 +162,7 @@ afterEvaluate {
+@@ -156,10 +162,10 @@ afterEvaluate {
  
  publishMods {
      changelog = ghaChangelog
@@ -62,7 +62,11 @@ index caadbcb..dc1e9c1 100644
 +    modLoaders.add("neoforge")
  
      def envDisplayName = System.getenv("OVERRIDE_DISPLAY_NAME")
-     displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for " + project.minecraft_version)
+-    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for fabric " + project.minecraft_version)
++    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for neoforge " + project.minecraft_version)
+ 
+     def envType = System.getenv("OVERRIDE_RELEASE_TYPE")
+     type = envType != null ? me.modmuss50.mpp.ReleaseType.valueOf(envType) : me.modmuss50.mpp.ReleaseType.ALPHA
 diff --git a/gradle.properties b/gradle.properties
 index e1101d3..01eefd7 100644
 --- a/gradle.properties
