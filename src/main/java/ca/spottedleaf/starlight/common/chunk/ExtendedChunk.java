@@ -18,38 +18,38 @@ public interface ExtendedChunk {
 
     public boolean scalablelux$usingStarlight();
 
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default  SWMRNibbleArray[] getBlockNibbles() {
         return scalablelux$getBlockNibbles();
     }
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default void setBlockNibbles(final SWMRNibbleArray[] nibbles) {
         scalablelux$setBlockNibbles(nibbles);
     }
 
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default SWMRNibbleArray[] getSkyNibbles() {
         return scalablelux$getSkyNibbles();
     }
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default void setSkyNibbles(final SWMRNibbleArray[] nibbles) {
         scalablelux$setSkyNibbles(nibbles);
     }
 
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default boolean[] getSkyEmptinessMap() {
         return scalablelux$getSkyEmptinessMap();
     }
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default void setSkyEmptinessMap(final boolean[] emptinessMap) {
         scalablelux$setSkyEmptinessMap(emptinessMap);
     }
 
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default boolean[] getBlockEmptinessMap() {
         return scalablelux$getBlockEmptinessMap();
     }
-    @Deprecated
+    @Deprecated(forRemoval = true)
     default void setBlockEmptinessMap(final boolean[] emptinessMap) {
         scalablelux$setBlockEmptinessMap(emptinessMap);
     }
