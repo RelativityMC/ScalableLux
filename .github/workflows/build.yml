@@ -57,5 +57,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Artifacts
-          path: 'build/libs/*.jar'
+          path: 'ScalableLux-Patched/build/libs/*.jar'
 
