@@ -5,7 +5,7 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index 31795f3..f432fdd 100644
+index c680a91..be3d070 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
@@ -15,7 +15,7 @@ index 31795f3..f432fdd 100644
      id 'maven-publish'
      id 'com.gradleup.shadow' version '9.4.0'
      id 'me.modmuss50.mod-publish-plugin' version "2.1.1"
-@@ -53,10 +53,14 @@ base {
+@@ -54,10 +54,14 @@ base {
      group = project.maven_group
  }
  
@@ -31,7 +31,7 @@ index 31795f3..f432fdd 100644
  
      // Fabric API. This is technically optional, but you probably want it anyway.
      //modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-@@ -72,10 +76,10 @@ dependencies {
+@@ -73,10 +77,10 @@ dependencies {
  
  processResources {
      inputs.property "version", project.version + "+" + project.minecraft_version
@@ -45,7 +45,7 @@ index 31795f3..f432fdd 100644
      }
  }
  
-@@ -114,6 +118,8 @@ shadowJar {
+@@ -115,6 +119,8 @@ shadowJar {
      relocate "com.ishland.flowsched", "ca.spottedleaf.starlight.interndep.flowsched"
  }
  
@@ -54,7 +54,7 @@ index 31795f3..f432fdd 100644
  clean.dependsOn gradle.includedBuild('FlowSched').task(':clean')
  
  // make build reproducible
-@@ -156,10 +162,10 @@ afterEvaluate {
+@@ -157,10 +163,10 @@ afterEvaluate {
  
  publishMods {
      changelog = ghaChangelog

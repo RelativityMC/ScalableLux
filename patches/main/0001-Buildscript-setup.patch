@@ -5,7 +5,7 @@ Subject: [PATCH] Buildscript setup
 
 
 diff --git a/build.gradle b/build.gradle
-index 1f784b0..caadbcb 100644
+index f7e5203..c680a91 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -21,7 +21,7 @@ loom.runs.all {
@@ -17,6 +17,14 @@ index 1f784b0..caadbcb 100644
      }.standardOutput.asText.get().trim()
      return stdout
  }
+@@ -29,6 +29,7 @@ def getGitCommit = { ->
+ String getVersionSuffix() {
+     def stdout = providers.exec {
+         commandLine 'git', 'describe', '--tags', '--dirty', '--broken'
++        workingDir = ".."
+     }.standardOutput.asText.get()
+     stdout = stdout.toString().strip()
+     def suffix = ""
 diff --git a/settings.gradle b/settings.gradle
 index 59b33fb..72ebf6e 100644
 --- a/settings.gradle
