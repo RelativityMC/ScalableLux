@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <30385023+ishland@users.noreply.github.com>
+Date: Sun, 5 Jul 2026 02:02:25 +0800
+Subject: [PATCH] Port 26.2 -> 26.1.2
+
+
+diff --git a/gradle.properties b/gradle.properties
+index e1101d3..89bc5f6 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -3,11 +3,11 @@ org.gradle.jvmargs=-Xmx2G
+ org.gradle.daemon=false
+ # Fabric Properties
+ # check these on https://modmuss50.me/fabric.html
+-minecraft_version=26.2
++minecraft_version=26.1.2
+ loader_version=0.19.3
+ # Mod Properties
+ mod_version=0.3.0-alpha.0
+ maven_group=ca.spottedleaf.starlight
+ archives_base_name=ScalableLux-fabric
+ 
+-curseforge_minecraft_versions=26.2
++curseforge_minecraft_versions=26.1.2
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
+index 5313dcf..b4621b5 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/client/multiplayer/ClientPacketListenerMixin.java
+@@ -161,8 +161,7 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
+             // we need this for the update chunk status call, so that it can tell starlight what sections are empty and such
+             this.enableChunkLight(chunk, chunkX, chunkZ);
+ 
+-            // vanilla no longer need this since 26.2
+-            // this.minecraft.levelRenderer.onChunkReadyToRender(chunk.getPos());
++            this.minecraft.levelRenderer.onChunkReadyToRender(chunk.getPos());
+         }
+     }
+ }
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+index 26ec60f..3eb8b18 100644
+--- a/src/main/resources/fabric.mod.json
++++ b/src/main/resources/fabric.mod.json
+@@ -32,6 +32,6 @@
+   "accessWidener" : "scalablelux.accesswidener",
+   "depends": {
+     "fabricloader": ">=${loader_version}",
+-    "minecraft": ">=26.2-rc.1"
++    "minecraft": "~26.1-"
+   }
+ }
