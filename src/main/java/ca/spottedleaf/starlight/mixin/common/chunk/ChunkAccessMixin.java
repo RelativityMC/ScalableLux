@@ -6,15 +6,11 @@ import ca.spottedleaf.starlight.common.light.StarLightEngine;
 import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import net.minecraft.world.level.BlockAndLightGetter;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.PalettedContainerFactory;
-import net.minecraft.world.level.chunk.UpgradeData;
-import net.minecraft.world.level.levelgen.blending.BlendingData;
 import net.minecraft.world.level.lighting.ChunkSkyLightSources;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -123,6 +119,13 @@ public abstract class ChunkAccessMixin implements ExtendedChunk {
 
     @Unique
     public boolean scalablelux$usingStarlight() {
-        return this.levelHeightAccessor instanceof BlockAndLightGetter getter && getter.getLightEngine() instanceof StarLightLightingProvider starLightLightingProvider;
+        if (this.levelHeightAccessor instanceof LevelAccessor levelAccessor) {
+            ChunkSource chunkSource = levelAccessor.getChunkSource();
+            return chunkSource != null && chunkSource.getLightEngine() instanceof StarLightLightingProvider starLightLightingProvider;
+        } else if (this.levelHeightAccessor instanceof BlockAndLightGetter getter) {
+            return getter.getLightEngine() instanceof StarLightLightingProvider starLightLightingProvider;
+        } else {
+            return false;
+        }
     }
 }
