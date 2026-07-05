@@ -27,8 +27,8 @@ echo "$tag" >"$basedir"/current-upstream
 
 cd "${upstreamDir}/" || exit
 
-#./build.sh up || exit
-#./build.sh p || exit
+./build.sh up || exit
+./build.sh p || exit
 
 function tag() {
   (

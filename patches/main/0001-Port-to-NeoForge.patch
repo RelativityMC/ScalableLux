@@ -68,22 +68,22 @@ index c680a91..be3d070 100644
      def envType = System.getenv("OVERRIDE_RELEASE_TYPE")
      type = envType != null ? me.modmuss50.mpp.ReleaseType.valueOf(envType) : me.modmuss50.mpp.ReleaseType.ALPHA
 diff --git a/gradle.properties b/gradle.properties
-index e1101d3..01eefd7 100644
+index 89bc5f6..485bbef 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -4,10 +4,10 @@ org.gradle.daemon=false
  # Fabric Properties
  # check these on https://modmuss50.me/fabric.html
- minecraft_version=26.2
+ minecraft_version=26.1.2
 -loader_version=0.19.3
-+forge_version=26.2.0.7-beta
++forge_version=26.1.2.77
  # Mod Properties
  mod_version=0.3.0-alpha.0
  maven_group=ca.spottedleaf.starlight
 -archives_base_name=ScalableLux-fabric
 +archives_base_name=ScalableLux-neoforge
  
- curseforge_minecraft_versions=26.2
+ curseforge_minecraft_versions=26.1.2
 diff --git a/settings.gradle b/settings.gradle
 index 72ebf6e..344d01a 100644
 --- a/settings.gradle

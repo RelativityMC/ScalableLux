@@ -79,7 +79,7 @@ function enableCommitSigningIfNeeded {
 }
 
 (
-    (applyPatch ScalableLux ScalableLux-Patched HEAD main) || exit 1
+    (applyPatch ScalableLux/ScalableLux-Patched ScalableLux-Patched HEAD main) || exit 1
     enableCommitSigningIfNeeded
 ) || (
     echo "Failed to apply patches"

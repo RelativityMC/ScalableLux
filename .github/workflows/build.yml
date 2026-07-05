@@ -46,7 +46,7 @@ jobs:
         run: |
           cd ScalableLux-Patched
           ./gradlew publishMods
-        if: github.ref == 'refs/heads/port/neoforge/26.2.0'
+        if: github.ref == 'refs/heads/port/neoforge/26.1.2'
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_UPLOAD_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
