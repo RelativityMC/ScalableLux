@@ -18,4 +18,37 @@ public interface StarLightLightingProvider {
 
     Long2ObjectOpenHashMap<SWMRNibbleArray[]> scalablelux$getSkyLightMap();
 
+    @Deprecated(forRemoval = true)
+    default StarLightInterface getLightEngine() {
+        return this.scalablelux$getLightEngine();
+    }
+
+    @Deprecated(forRemoval = true)
+    default void clientUpdateLight(final LightLayer lightType, final SectionPos pos,
+                                   final DataLayer nibble, final boolean trustEdges) {
+        if (this instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            clientStarLightLightingProvider.scalablelux$clientUpdateLight(lightType, pos, nibble, trustEdges);
+        } else {
+            throw new UnsupportedOperationException("Not an instance of ClientStarLightLightingProvider");
+        }
+    }
+
+    @Deprecated(forRemoval = true)
+    default void clientRemoveLightData(final ChunkPos chunkPos) {
+        if (this instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            clientStarLightLightingProvider.scalablelux$clientRemoveLightData(chunkPos);
+        } else {
+            throw new UnsupportedOperationException("Not an instance of ClientStarLightLightingProvider");
+        }
+    }
+
+    @Deprecated(forRemoval = true)
+    default void clientChunkLoad(final ChunkPos pos, final LevelChunk chunk) {
+        if (this instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
+            clientStarLightLightingProvider.scalablelux$clientChunkLoad(pos, chunk);
+        } else {
+            throw new UnsupportedOperationException("Not an instance of ClientStarLightLightingProvider");
+        }
+    }
+
 }
