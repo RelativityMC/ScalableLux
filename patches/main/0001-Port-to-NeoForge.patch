@@ -411,3 +411,46 @@ index 0000000..8d6a4f6
 +
 +[[mixins]]
 +config="scalablelux.mixins.json"
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+deleted file mode 100644
+index 3eb8b18..0000000
+--- a/src/main/resources/fabric.mod.json
++++ /dev/null
+@@ -1,37 +0,0 @@
+-{
+-  "schemaVersion": 1,
+-  "id": "scalablelux",
+-  "version": "${version}",
+-  "name": "ScalableLux",
+-  "description": "Rewrites the light engine to fix lighting performance and lighting errors",
+-  "authors": [
+-    "Spottedleaf",
+-    "ishland"
+-  ],
+-  "contact": {
+-    "issues": "https://github.com/RelativityMC/ScalableLux/issues",
+-    "sources": "https://github.com/RelativityMC/ScalableLux"
+-  },
+-  "provides": [
+-    "starlight"
+-  ],
+-  "breaks": {
+-    "phosphor" : "*"
+-  },
+-  "license": "LGPL-3.0-only",
+-  "icon": "assets/scalablelux/icon.png",
+-  "environment": "*",
+-  "entrypoints": {
+-    "main": [
+-      "ca.spottedleaf.starlight.common.ScalableLuxEntrypoint"
+-    ]
+-  },
+-  "mixins": [
+-    "scalablelux.mixins.json"
+-  ],
+-  "accessWidener" : "scalablelux.accesswidener",
+-  "depends": {
+-    "fabricloader": ">=${loader_version}",
+-    "minecraft": "~26.1-"
+-  }
+-}
