@@ -1,0 +1,473 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <30385023+ishland@users.noreply.github.com>
+Date: Sat, 11 Jul 2026 00:48:44 +0800
+Subject: [PATCH] Port to NeoForge
+
+
+diff --git a/build.gradle b/build.gradle
+index 1caff61..84ee974 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,5 +1,5 @@
+ plugins {
+-    id 'net.fabricmc.fabric-loom-remap' version '1.17-SNAPSHOT'
++    id 'org.relativitymc.neo-loom-remap' version '1.17-SNAPSHOT'
+     id 'maven-publish'
+     id 'com.gradleup.shadow' version '9.4.0'
+     id 'me.modmuss50.mod-publish-plugin' version "2.1.1"
+@@ -54,11 +54,15 @@ base {
+     group = project.maven_group
+ }
+ 
++repositories {
++    maven { url "https://maven.neoforged.net/releases/" }
++}
++
+ dependencies {
+     //to change the versions see the gradle.properties file
+     minecraft "com.mojang:minecraft:${project.minecraft_version}"
+     mappings loom.officialMojangMappings()
+-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
++    forgeUserdev "net.neoforged:neoforge:${project.forge_version}:userdev"
+ 
+     // Fabric API. This is technically optional, but you probably want it anyway.
+     //modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+@@ -74,10 +78,10 @@ dependencies {
+ 
+ processResources {
+     inputs.property "version", project.version + "+" + project.minecraft_version
+-    inputs.property "loader_version", project.loader_version
++    inputs.property "minecraft_version", project.minecraft_version
+ 
+-    filesMatching("fabric.mod.json") {
+-        expand "version": project.version + "+" + project.minecraft_version, "loader_version": project.loader_version
++    filesMatching("META-INF/neoforge.mods.toml") {
++        expand "version": project.version + "+" + project.minecraft_version, "minecraft_version": project.minecraft_version
+     }
+ }
+ 
+@@ -120,6 +124,7 @@ remapJar {
+     input = shadowJar.archiveFile
+     archiveFileName = shadowJar.archiveFileName.get().replaceAll("-dev\\.jar\$", ".jar")
+     addNestedDependencies = true
++    atAccessWideners.add("scalablelux.accesswidener")
+     dependsOn shadowJar
+ }
+ 
+@@ -165,10 +170,10 @@ afterEvaluate {
+ 
+ publishMods {
+     changelog = ghaChangelog
+-    modLoaders.add("fabric")
++    modLoaders.add("neoforge")
+ 
+     def envDisplayName = System.getenv("OVERRIDE_DISPLAY_NAME")
+-    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for fabric " + project.minecraft_version)
++    displayName = envDisplayName != null ? envDisplayName : (project.version + " devbuild for neoforge " + project.minecraft_version)
+ 
+     def envType = System.getenv("OVERRIDE_RELEASE_TYPE")
+     type = envType != null ? me.modmuss50.mpp.ReleaseType.valueOf(envType) : me.modmuss50.mpp.ReleaseType.ALPHA
+diff --git a/gradle.properties b/gradle.properties
+index acfad43..9083ca8 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -4,10 +4,10 @@ org.gradle.daemon=false
+ # Fabric Properties
+ # check these on https://modmuss50.me/fabric.html
+ minecraft_version=1.21.1
+-loader_version=0.19.3
++forge_version=21.1.235
+ # Mod Properties
+ mod_version=0.3.0-alpha.0
+ maven_group=ca.spottedleaf.starlight
+-archives_base_name=ScalableLux-fabric
++archives_base_name=ScalableLux-neoforge
+ 
+ curseforge_minecraft_versions=1.21.1
+diff --git a/settings.gradle b/settings.gradle
+index 72ebf6e..344d01a 100644
+--- a/settings.gradle
++++ b/settings.gradle
+@@ -4,6 +4,10 @@ pluginManagement {
+             name = 'Fabric'
+             url = 'https://maven.fabricmc.net/'
+         }
++        maven {
++            name = 'RelativityMC'
++            url = 'https://repo.codemc.io/repository/relativitymc/'
++        }
+         mavenCentral()
+         gradlePluginPortal()
+     }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java b/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java
+index df74ac1..7fa1560 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/ScalableLuxEntrypoint.java
+@@ -1,11 +1,15 @@
+ package ca.spottedleaf.starlight.common;
+ 
+ import ca.spottedleaf.starlight.common.config.Config;
+-import net.fabricmc.api.ModInitializer;
++import net.neoforged.fml.common.Mod;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ 
+-public class ScalableLuxEntrypoint implements ModInitializer {
+-    @Override
+-    public void onInitialize() {
++@Mod("scalablelux")
++public class ScalableLuxEntrypoint {
++    public static final Logger LOGGER = LoggerFactory.getLogger("ScalableLux");
++
++    public ScalableLuxEntrypoint() {
+         Config.init();
+     }
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java b/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java
+index ddeb208..35f493d 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/blockstate/ExtendedAbstractBlockState.java
+@@ -6,4 +6,6 @@ public interface ExtendedAbstractBlockState {
+ 
+     public int scalablelux$getOpacityIfCached();
+ 
++    public boolean scalablelux$actuallyDynamicLightEmission();
++
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
+index 5ecceaa..0ada962 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/config/Config.java
+@@ -1,9 +1,7 @@
+ package ca.spottedleaf.starlight.common.config;
+ 
+ import ca.spottedleaf.starlight.common.thread.SchedulingUtil;
+-import net.fabricmc.loader.api.FabricLoader;
+-import net.fabricmc.loader.api.ModContainer;
+-import net.fabricmc.loader.api.metadata.CustomValue;
++import net.neoforged.fml.loading.FMLPaths;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+@@ -23,7 +21,7 @@ public class Config {
+     static {
+         final Properties properties = new Properties();
+         final Properties newProperties = new Properties();
+-        final Path path = FabricLoader.getInstance().getConfigDir().resolve("scalablelux.properties");
++        final Path path = FMLPaths.CONFIGDIR.get().resolve("scalablelux.properties");
+         if (Files.isRegularFile(path)) {
+             try (InputStream in = Files.newInputStream(path, StandardOpenOption.CREATE)) {
+                 properties.load(in);
+@@ -65,30 +63,30 @@ public class Config {
+         }
+     }
+ 
+-    private static boolean getBoolean(Properties properties, Properties newProperties, String key, boolean def) {
+-        boolean boolean0 = getBoolean0(properties, newProperties, key, def);
+-        for (ModContainer modContainer : FabricLoader.getInstance().getAllMods()) {
+-            final CustomValue incompatibilitiesValue = modContainer.getMetadata().getCustomValue("scalablelux:incompatibleConfig");
+-            if (incompatibilitiesValue != null && incompatibilitiesValue.getType() == CustomValue.CvType.ARRAY) {
+-                final CustomValue.CvArray incompatibilities = incompatibilitiesValue.getAsArray();
+-                for (CustomValue value : incompatibilities) {
+-                    if (value.getType() == CustomValue.CvType.STRING && value.getAsString().equals(key)) {
+-                        final String message;
+-                        if (Boolean.getBoolean("scalablelux.ignoreIncompatibleConfig")) {
+-                            message = String.format("Ignoring incompatibility of %s (defined in %s@%s)",
+-                                    key, modContainer.getMetadata().getId(), modContainer.getMetadata().getVersion().getFriendlyString());
+-                        } else {
+-                            message = String.format("Forcing %s in scalablelux.properties to be disabled (defined in %s@%s)",
+-                                    key, modContainer.getMetadata().getId(), modContainer.getMetadata().getVersion().getFriendlyString());
+-                            boolean0 = false;
+-                        }
+-                        LOGGER.warn(message);
+-                    }
+-                }
+-            }
+-        }
+-        return boolean0;
+-    }
++//    private static boolean getBoolean(Properties properties, Properties newProperties, String key, boolean def) {
++//        boolean boolean0 = getBoolean0(properties, newProperties, key, def);
++//        for (ModContainer modContainer : FabricLoader.getInstance().getAllMods()) {
++//            final CustomValue incompatibilitiesValue = modContainer.getMetadata().getCustomValue("scalablelux:incompatibleConfig");
++//            if (incompatibilitiesValue != null && incompatibilitiesValue.getType() == CustomValue.CvType.ARRAY) {
++//                final CustomValue.CvArray incompatibilities = incompatibilitiesValue.getAsArray();
++//                for (CustomValue value : incompatibilities) {
++//                    if (value.getType() == CustomValue.CvType.STRING && value.getAsString().equals(key)) {
++//                        final String message;
++//                        if (Boolean.getBoolean("scalablelux.ignoreIncompatibleConfig")) {
++//                            message = String.format("Ignoring incompatibility of %s (defined in %s@%s)",
++//                                    key, modContainer.getMetadata().getId(), modContainer.getMetadata().getVersion().getFriendlyString());
++//                        } else {
++//                            message = String.format("Forcing %s in scalablelux.properties to be disabled (defined in %s@%s)",
++//                                    key, modContainer.getMetadata().getId(), modContainer.getMetadata().getVersion().getFriendlyString());
++//                            boolean0 = false;
++//                        }
++//                        LOGGER.warn(message);
++//                    }
++//                }
++//            }
++//        }
++//        return boolean0;
++//    }
+ 
+     private static boolean getBoolean0(Properties properties, Properties newProperties, String key, boolean def) {
+         try {
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+index fab15bf..e63fc7a 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+@@ -91,7 +91,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
+ 
+         final int currentLevel = this.getLightLevel(worldX, worldY, worldZ);
+         final BlockState blockState = this.getBlockState(worldX, worldY, worldZ);
+-        final int emittedLevel = blockState.getLightEmission() & emittedMask;
++        this.checkBlockPos.set(worldX, worldY, worldZ);
++        final int emittedLevel = blockState.getLightEmission(lightAccess.getLevel(), this.checkBlockPos) & emittedMask;
+ 
+         this.setLightLevel(worldX, worldY, worldZ, emittedLevel);
+         // this accounts for change in emitted light that would cause an increase
+@@ -125,7 +126,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
+     protected int calculateLightValue(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ,
+                                       final int expect) {
+         final BlockState centerState = this.getBlockState(worldX, worldY, worldZ);
+-        int level = centerState.getLightEmission() & 0xF;
++        this.recalcCenterPos.set(worldX, worldY, worldZ);
++        int level = centerState.getLightEmission(lightAccess.getLevel(), this.recalcCenterPos) & 0xF;
+ 
+         if (level >= (15 - 1) || level > expect) {
+             return level;
+@@ -212,9 +214,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+                 // no sources in empty sections
+                 continue;
+             }
+-            if (!section.maybeHas((final BlockState state) -> {
+-                return state.getLightEmission() > 0;
+-            })) {
++            if (!section.maybeHas(blockState -> ((ExtendedAbstractBlockState) blockState).scalablelux$actuallyDynamicLightEmission() || blockState.getLightEmission() != 0)) {
+                 // no light sources in palette
+                 continue;
+             }
+@@ -223,7 +223,8 @@ public final class BlockStarLightEngine extends StarLightEngine {
+ 
+             for (int index = 0; index < (16 * 16 * 16); ++index) {
+                 final BlockState state = states.get(index);
+-                if (state.getLightEmission() <= 0) {
++                this.mutablePos4.set(offX | (index & 15), offY | (index >>> 8), offZ | ((index >>> 4) & 15));
++                if (state.getLightEmission(lightAccess.getLevel(), this.mutablePos1) <= 0) {
+                     continue;
+                 }
+ 
+@@ -243,7 +244,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+         for (int i = 0, len = positions.size(); i < len; ++i) {
+             final BlockPos pos = positions.get(i);
+             final BlockState blockState = this.getBlockState(pos.getX(), pos.getY(), pos.getZ());
+-            final int emittedLight = blockState.getLightEmission() & emittedMask;
++            final int emittedLight = blockState.getLightEmission(lightAccess.getLevel(), pos) & emittedMask;
+ 
+             if (emittedLight <= this.getLightLevel(pos.getX(), pos.getY(), pos.getZ())) {
+                 // some other source is brighter
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+index da5d9b1..20980ef 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+@@ -110,6 +110,7 @@ public abstract class StarLightEngine {
+     protected final BlockPos.MutableBlockPos mutablePos1 = new BlockPos.MutableBlockPos();
+     protected final BlockPos.MutableBlockPos mutablePos2 = new BlockPos.MutableBlockPos();
+     protected final BlockPos.MutableBlockPos mutablePos3 = new BlockPos.MutableBlockPos();
++    protected final BlockPos.MutableBlockPos mutablePos4 = new BlockPos.MutableBlockPos();
+ 
+     protected int encodeOffsetX;
+     protected int encodeOffsetY;
+@@ -438,6 +439,8 @@ public abstract class StarLightEngine {
+     // subclasses should not invoke updateVisible, as this will always be done by the super call
+     protected abstract void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions);
+ 
++    protected final BlockPos.MutableBlockPos checkBlockPos = new BlockPos.MutableBlockPos();
++
+     protected abstract void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ);
+ 
+     // if ret > expect, then the real value is at least ret (early returns if ret > expect, rather than calculating actual)
+@@ -1351,7 +1354,7 @@ public abstract class StarLightEngine {
+                                             | FLAG_RECHECK_LEVEL;
+                             continue;
+                         }
+-                        final int emittedLight = blockState.getLightEmission() & emittedMask;
++                        final int emittedLight = blockState.getLightEmission() & emittedMask; // opacity cached
+                         if (emittedLight != 0) {
+                             // re-propagate source
+                             // note: do not set recheck level, or else the propagation will fail
+@@ -1405,7 +1408,7 @@ public abstract class StarLightEngine {
+                                             | (FLAG_RECHECK_LEVEL | flags);
+                             continue;
+                         }
+-                        final int emittedLight = blockState.getLightEmission() & emittedMask;
++                        final int emittedLight = blockState.getLightEmission(world, this.mutablePos1) & emittedMask;
+                         if (emittedLight != 0) {
+                             // re-propagate source
+                             // note: do not set recheck level, or else the propagation will fail
+@@ -1480,7 +1483,7 @@ public abstract class StarLightEngine {
+                                             | FLAG_RECHECK_LEVEL;
+                             continue;
+                         }
+-                        final int emittedLight = blockState.getLightEmission() & emittedMask;
++                        final int emittedLight = blockState.getLightEmission() & emittedMask; // opacity cached
+                         if (emittedLight != 0) {
+                             // re-propagate source
+                             // note: do not set recheck level, or else the propagation will fail
+@@ -1534,7 +1537,7 @@ public abstract class StarLightEngine {
+                                             | (FLAG_RECHECK_LEVEL | flags);
+                             continue;
+                         }
+-                        final int emittedLight = blockState.getLightEmission() & emittedMask;
++                        final int emittedLight = blockState.getLightEmission(world, this.mutablePos1) & emittedMask;
+                         if (emittedLight != 0) {
+                             // re-propagate source
+                             // note: do not set recheck level, or else the propagation will fail
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
+index 5a736c1..ebfd01f 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/blockstate/BlockStateBaseMixin.java
+@@ -1,13 +1,18 @@
+ package ca.spottedleaf.starlight.mixin.common.blockstate;
+ 
++import ca.spottedleaf.starlight.common.ScalableLuxEntrypoint;
+ import ca.spottedleaf.starlight.common.blockstate.ExtendedAbstractBlockState;
+ import com.mojang.serialization.MapCodec;
+ import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.StateHolder;
+ import net.minecraft.world.level.block.state.properties.Property;
++import net.neoforged.neoforge.common.extensions.IBlockExtension;
++import net.neoforged.neoforge.common.extensions.IBlockStateExtension;
+ import org.spongepowered.asm.mixin.Final;
+ import org.spongepowered.asm.mixin.Mixin;
+ import org.spongepowered.asm.mixin.Shadow;
+@@ -30,12 +35,17 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+     @Shadow
+     protected BlockBehaviour.BlockStateBase.Cache cache;
+ 
++    @Shadow public abstract Block getBlock();
++
+     @Unique
+     private int opacityIfCached;
+ 
+     @Unique
+     private boolean scalablelux$isConditionallyFullOpaque;
+ 
++    @Unique
++    private boolean scalablelux$actuallyDynamicLightEmission;
++
+     protected BlockStateBaseMixin(Block object, Reference2ObjectArrayMap<Property<?>, Comparable<?>> reference2ObjectArrayMap, MapCodec<BlockState> mapCodec) {
+         super(object, reference2ObjectArrayMap, mapCodec);
+     }
+@@ -50,6 +60,18 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+     public void initLightAccessState(final CallbackInfo ci) {
+         this.scalablelux$isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
+         this.opacityIfCached = this.cache == null || this.scalablelux$isConditionallyFullOpaque ? -1 : this.cache.lightBlock;
++        try {
++            if ((this instanceof IBlockStateExtension extension && extension.hasDynamicLightEmission()) ||
++                    this.getClass().getMethod("getLightEmission", BlockGetter.class, BlockPos.class).getDeclaringClass() != IBlockStateExtension.class ||
++                    this.getBlock().getClass().getMethod("getLightEmission", BlockState.class, BlockGetter.class, BlockPos.class).getDeclaringClass() != IBlockExtension.class) {
++                this.opacityIfCached = -1;
++                this.scalablelux$actuallyDynamicLightEmission = true;
++            }
++        } catch (Throwable t) {
++            ScalableLuxEntrypoint.LOGGER.error("Failed to analyze class \"{}\" for dynamic lighting, this will impact performance.", this.getClass().toString(), t);
++            this.opacityIfCached = -1;
++            this.scalablelux$actuallyDynamicLightEmission = true;
++        }
+     }
+ 
+     @Override
+@@ -61,4 +83,10 @@ public abstract class BlockStateBaseMixin extends StateHolder<Block, BlockState>
+     public final int scalablelux$getOpacityIfCached() {
+         return this.opacityIfCached;
+     }
++
++    @Unique
++    @Override
++    public boolean scalablelux$actuallyDynamicLightEmission() {
++        return this.scalablelux$actuallyDynamicLightEmission;
++    }
+ }
+diff --git a/src/main/resources/META-INF/neoforge.mods.toml b/src/main/resources/META-INF/neoforge.mods.toml
+new file mode 100644
+index 0000000..8d6a4f6
+--- /dev/null
++++ b/src/main/resources/META-INF/neoforge.mods.toml
+@@ -0,0 +1,26 @@
++modLoader="javafml"
++loaderVersion="*"
++license="LGPL-3.0-only"
++issueTrackerURL="https://github.com/RelativityMC/ScalableLux/issues"
++clientSideOnly = false
++showAsResourcePack = false
++showAsDataPack = false
++
++[[mods]]
++modId="scalablelux"
++version="${version}"
++displayName="ScalableLux"
++logoFile="assets/scalablelux/icon.png"
++authors="Spottedleaf, ishland"
++description='''Rewrites the light engine to fix lighting performance and lighting errors'''
++displayURL = "https://github.com/RelativityMC/ScalableLux"
++
++[[dependencies.scalablelux]]
++modId = "minecraft"
++type = "required"
++versionRange = "[${minecraft_version},)"
++ordering = "NONE"
++side = "BOTH"
++
++[[mixins]]
++config="scalablelux.mixins.json"
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+deleted file mode 100644
+index dff8eef..0000000
+--- a/src/main/resources/fabric.mod.json
++++ /dev/null
+@@ -1,38 +0,0 @@
+-{
+-  "schemaVersion": 1,
+-  "id": "scalablelux",
+-  "version": "${version}",
+-  "name": "ScalableLux",
+-  "description": "Rewrites the light engine to fix lighting performance and lighting errors",
+-  "authors": [
+-    "Spottedleaf",
+-    "ishland"
+-  ],
+-  "contact": {
+-    "issues": "https://github.com/RelativityMC/ScalableLux/issues",
+-    "sources": "https://github.com/RelativityMC/ScalableLux"
+-  },
+-  "provides": [
+-    "starlight"
+-  ],
+-  "breaks": {
+-    "phosphor" : "*",
+-    "c2me-rewrites-chunk-serializer": "<0.4-"
+-  },
+-  "license": "LGPL-3.0-only",
+-  "icon": "assets/scalablelux/icon.png",
+-  "environment": "*",
+-  "entrypoints": {
+-    "main": [
+-      "ca.spottedleaf.starlight.common.ScalableLuxEntrypoint"
+-    ]
+-  },
+-  "mixins": [
+-    "scalablelux.mixins.json"
+-  ],
+-  "accessWidener" : "scalablelux.accesswidener",
+-  "depends": {
+-    "fabricloader": ">=${loader_version}",
+-    "minecraft": "=1.21.1"
+-  }
+-}
