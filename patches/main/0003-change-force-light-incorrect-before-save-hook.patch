@@ -4,6 +4,19 @@ Date: Sun, 16 Aug 2026 20:56:29 +0800
 Subject: [PATCH] change: force light incorrect before save hook
 
 
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+index 1fa08a4..eccf622 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+@@ -23,7 +23,7 @@ public final class SaveUtil {
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
+     public static void saveVanillaLightHook(final ServerLevel serverLevel, final ChunkAccess chunk, final CompoundTag data) {
+-        boolean lightCorrect = data.getBoolean("isLightOn");
++        boolean lightCorrect = chunk.isLightCorrect();
+         data.putBoolean("isLightOn", false);
+         try {
+             saveVanillaLightHookReal(serverLevel, chunk, data);
 diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
 index 11d295b..aa3fc31 100644
 --- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
