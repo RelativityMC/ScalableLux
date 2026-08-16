@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <30385023+ishland@users.noreply.github.com>
+Date: Sun, 16 Aug 2026 20:56:29 +0800
+Subject: [PATCH] change: force light incorrect before save hook
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
+index 11d295b..aa3fc31 100644
+--- a/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
++++ b/src/main/java/ca/spottedleaf/starlight/mixin/common/world/SerializableChunkDataMixin.java
+@@ -24,6 +24,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+ @Mixin(ChunkSerializer.class)
+ public abstract class SerializableChunkDataMixin {
+ 
++    @WrapOperation(method = "write", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/chunk/ChunkAccess;isLightCorrect()Z"))
++    private static boolean forceLightIncorrectBeforeSave(ChunkAccess instance, Operation<Boolean> original, ServerLevel world, ChunkAccess chunkAccess1) {
++        if (world.getLightEngine() instanceof StarLightLightingProvider) {
++            return false;
++        } else {
++            return original.call(instance);
++        }
++    }
++
+     /**
+      * Overwrites vanilla's light data with our own.
+      * TODO this needs to be checked on update to account for format changes

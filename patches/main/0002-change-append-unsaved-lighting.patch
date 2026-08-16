@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <30385023+ishland@users.noreply.github.com>
+Date: Sun, 16 Aug 2026 20:56:16 +0800
+Subject: [PATCH] change: append unsaved lighting
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+index 26b09ff..1fa08a4 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/util/SaveUtil.java
+@@ -59,11 +59,16 @@ public final class SaveUtil {
+ 
+         ListTag sectionsStored = data.getList("sections", 10);
+ 
++        int minLightSection = WorldUtil.getMinLightSection(serverLevel);
++        int maxLightSection = WorldUtil.getMaxLightSection(serverLevel);
++
+         for (Tag tag : sectionsStored) {
+             CompoundTag sectionData = (CompoundTag) tag;
+-            int index = sectionData.getInt("Y") - WorldUtil.getMinLightSection(serverLevel);
++            int index = sectionData.getInt("Y") - minLightSection;
+             byte[] blockRaw = blockNibbleSaveStates[index] != null ? blockNibbleSaveStates[index].data : null;
++            blockNibbleSaveStates[index] = null;
+             byte[] skyRaw = skyNibbleSaveStates[index] != null ? skyNibbleSaveStates[index].data : null;
++            skyNibbleSaveStates[index] = null;
+ 
+             sectionData.remove("BlockLight");
+             if (blockRaw != null) sectionData.putByteArray("BlockLight", blockRaw);
+@@ -72,6 +77,23 @@ public final class SaveUtil {
+             if (skyRaw != null) sectionData.putByteArray("SkyLight", skyRaw);
+         }
+ 
++        // we might still have unsaved data, append them to the section list
++        for (int i = minLightSection; i < maxLightSection; i++) {
++            int index = i - minLightSection;
++            byte[] blockRaw = blockNibbleSaveStates[index] != null ? blockNibbleSaveStates[index].data : null;
++            blockNibbleSaveStates[index] = null;
++            byte[] skyRaw = skyNibbleSaveStates[index] != null ? skyNibbleSaveStates[index].data : null;
++            skyNibbleSaveStates[index] = null;
++
++            if (blockRaw != null || skyRaw != null) {
++                CompoundTag sectionData = new CompoundTag();
++                if (blockRaw != null) sectionData.putByteArray("BlockLight", blockRaw);
++                if (skyRaw != null) sectionData.putByteArray("SkyLight", skyRaw);
++                sectionData.putInt("Y", (byte) i);
++                sectionsStored.add(sectionData);
++            }
++        }
++
+ //        ListIterator<SerializableChunkData.SectionData> iterator = data.sectionData().listIterator(); // mutable in vanilla
+ //        while (iterator.hasNext()) {
+ //            SerializableChunkData.SectionData sectionData = iterator.next();
