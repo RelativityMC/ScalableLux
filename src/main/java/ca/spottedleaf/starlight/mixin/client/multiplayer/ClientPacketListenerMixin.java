@@ -147,15 +147,15 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
     )
     private void postChunkLoadHook(final ClientboundLevelChunkWithLightPacket packet, final CallbackInfo ci) {
         if (this.level.getChunkSource().getLightEngine() instanceof ClientStarLightLightingProvider clientStarLightLightingProvider) {
-            final int chunkX = packet.getX();
-            final int chunkZ = packet.getZ();
+            final int chunkX = packet.x();
+            final int chunkZ = packet.z();
             final LevelChunk chunk = this.level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
             if (chunk == null) {
                 // failed to load
                 return;
             }
             // load in light data from packet immediately
-            this.applyLightData(chunkX, chunkZ, packet.getLightData(), true);
+            this.applyLightData(chunkX, chunkZ, packet.lightData(), true);
             clientStarLightLightingProvider.scalablelux$clientChunkLoad(new ChunkPos(chunkX, chunkZ), chunk);
 
             // we need this for the update chunk status call, so that it can tell starlight what sections are empty and such
