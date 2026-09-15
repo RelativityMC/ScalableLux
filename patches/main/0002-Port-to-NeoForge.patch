@@ -5,7 +5,7 @@ Subject: [PATCH] Port to NeoForge
 
 
 diff --git a/build.gradle b/build.gradle
-index c680a91..be3d070 100644
+index c680a91..36b3307 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,5 +1,5 @@
@@ -15,12 +15,22 @@ index c680a91..be3d070 100644
      id 'maven-publish'
      id 'com.gradleup.shadow' version '9.4.0'
      id 'me.modmuss50.mod-publish-plugin' version "2.1.1"
-@@ -54,10 +54,14 @@ base {
+@@ -54,10 +54,24 @@ base {
      group = project.maven_group
  }
  
 +repositories {
 +    maven { url "https://maven.neoforged.net/releases/" }
++    repositories {
++        maven {
++            name = "Maven for PR #3403" // https://github.com/neoforged/NeoForge/pull/3403
++            url = uri("https://prmaven.neoforged.net/NeoForge/pr3403")
++            content {
++                includeModule("net.neoforged", "neoforge")
++                includeModule("net.neoforged", "testframework")
++            }
++        }
++    }
 +}
 +
  dependencies {
@@ -31,7 +41,7 @@ index c680a91..be3d070 100644
  
      // Fabric API. This is technically optional, but you probably want it anyway.
      //modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-@@ -73,10 +77,10 @@ dependencies {
+@@ -73,10 +87,10 @@ dependencies {
  
  processResources {
      inputs.property "version", project.version + "+" + project.minecraft_version
@@ -45,7 +55,7 @@ index c680a91..be3d070 100644
      }
  }
  
-@@ -115,6 +119,8 @@ shadowJar {
+@@ -115,6 +129,8 @@ shadowJar {
      relocate "com.ishland.flowsched", "ca.spottedleaf.starlight.interndep.flowsched"
  }
  
@@ -54,7 +64,7 @@ index c680a91..be3d070 100644
  clean.dependsOn gradle.includedBuild('FlowSched').task(':clean')
  
  // make build reproducible
-@@ -157,10 +163,10 @@ afterEvaluate {
+@@ -157,10 +173,10 @@ afterEvaluate {
  
  publishMods {
      changelog = ghaChangelog
@@ -68,22 +78,25 @@ index c680a91..be3d070 100644
      def envType = System.getenv("OVERRIDE_RELEASE_TYPE")
      type = envType != null ? me.modmuss50.mpp.ReleaseType.valueOf(envType) : me.modmuss50.mpp.ReleaseType.ALPHA
 diff --git a/gradle.properties b/gradle.properties
-index e1101d3..01eefd7 100644
+index d5d992c..1ba3979 100644
 --- a/gradle.properties
 +++ b/gradle.properties
-@@ -4,10 +4,10 @@ org.gradle.daemon=false
+@@ -2,11 +2,11 @@
+ org.gradle.jvmargs=-Xmx2G
  # Fabric Properties
  # check these on https://modmuss50.me/fabric.html
- minecraft_version=26.2
--loader_version=0.19.3
-+forge_version=26.2.0.7-beta
+-minecraft_version=26.3-rc-2
+-loader_version=0.19.5
++minecraft_version=26.3
++forge_version=26.2.0.200-pr-3403-port-26.3
  # Mod Properties
  mod_version=0.3.0-alpha.0
  maven_group=ca.spottedleaf.starlight
 -archives_base_name=ScalableLux-fabric
 +archives_base_name=ScalableLux-neoforge
  
- curseforge_minecraft_versions=26.2
+-curseforge_minecraft_versions=26.2
++curseforge_minecraft_versions=26.3
 diff --git a/settings.gradle b/settings.gradle
 index 72ebf6e..344d01a 100644
 --- a/settings.gradle
@@ -381,7 +394,7 @@ index 3eaef26..a778612 100644
  }
 diff --git a/src/main/resources/META-INF/neoforge.mods.toml b/src/main/resources/META-INF/neoforge.mods.toml
 new file mode 100644
-index 0000000..8d6a4f6
+index 0000000..5735289
 --- /dev/null
 +++ b/src/main/resources/META-INF/neoforge.mods.toml
 @@ -0,0 +1,26 @@
@@ -397,7 +410,7 @@ index 0000000..8d6a4f6
 +modId="scalablelux"
 +version="${version}"
 +displayName="ScalableLux"
-+logoFile="assets/scalablelux/icon.png"
++iconFile="assets/scalablelux/icon.png"
 +authors="Spottedleaf, ishland"
 +description='''Rewrites the light engine to fix lighting performance and lighting errors'''
 +displayURL = "https://github.com/RelativityMC/ScalableLux"
