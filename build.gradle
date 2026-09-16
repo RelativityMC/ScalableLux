@@ -48,7 +48,7 @@ String getVersionSuffix() {
 }
 
 base {
-    archivesName = project.archives_base_name
+    archivesName = "${project.archives_base_name}-mc${project.minecraft_version}"
     version = project.mod_version + "." + getVersionSuffix()
     group = project.maven_group
 }
