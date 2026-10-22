@@ -18,6 +18,7 @@ import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.lighting.LayerLightEventListener;
 import net.minecraft.world.level.lighting.LayerLightSectionStorage;
@@ -198,6 +199,15 @@ public class BaseLevelLightEngineVanillaInterface extends LevelLightEngine imple
         }
         if (skyNibbles != null) {
             ((ExtendedChunk)chunk).scalablelux$setSkyNibbles(skyNibbles);
+        }
+        if (((ExtendedChunk)chunk).scalablelux$getBlockEmptinessMap() == null || ((ExtendedChunk)chunk).scalablelux$getSkyEmptinessMap() == null) {
+            // non-boxed copy of StarLightEngine.getEmptySectionsForChunk()
+            final LevelChunkSection[] sections = chunk.getSections();
+            final boolean[] emptySectionsForChunk = new boolean[sections.length];
+            for (int i = 0; i < sections.length; ++i) {
+                emptySectionsForChunk[i] = sections[i] == null || sections[i].hasOnlyAir();
+            }
+            ((ExtendedChunk)chunk).scalablelux$setBlockEmptinessMap(emptySectionsForChunk);
         }
     }
 }
