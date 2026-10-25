@@ -109,26 +109,30 @@ public final class SaveUtil {
                     skyNibbles[y - minSection] = SWMRNibbleArray.fromVanilla(section.skyLight()); // clone for data safety
                 }
             }
-            // workaround vanilla quirk: skylight in sections below sections with initialized skylight is zero
-            {
-                boolean fillWithZero = false;
-                for (int i = skyNibbles.length - 1; i >= 0; i--) {
-                    if (!skyNibbles[i].isNullNibbleVisible()) {
-                        fillWithZero = true;
-                        continue;
-                    }
-                    if (fillWithZero) {
-                        skyNibbles[i].setNonNull();
-                        skyNibbles[i].updateVisible();
-                    }
-                }
-            }
+            extrudeVanillaSkylightWithQuirk(skyNibbles);
         }
 
         ((ExtendedChunk)into).scalablelux$setBlockNibbles(blockNibbles);
         ((ExtendedChunk)into).scalablelux$setSkyNibbles(skyNibbles);
 
         into.setLightCorrect(lit); // now we set lit here, only after we've correctly parsed data
+    }
+
+    public static void extrudeVanillaSkylightWithQuirk(SWMRNibbleArray[] skyNibbles) {
+        // workaround vanilla quirk: skylight in sections below sections with initialized skylight is zero
+        {
+            boolean fillWithZero = false;
+            for (int i = skyNibbles.length - 1; i >= 0; i--) {
+                if (!skyNibbles[i].isNullNibbleVisible()) {
+                    fillWithZero = true;
+                    continue;
+                }
+                if (fillWithZero) {
+                    skyNibbles[i].setNonNull();
+                    skyNibbles[i].updateVisible();
+                }
+            }
+        }
     }
 
     private SaveUtil() {}

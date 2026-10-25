@@ -7,6 +7,7 @@ import ca.spottedleaf.starlight.common.light.StarLightEngine;
 import ca.spottedleaf.starlight.common.light.StarLightInterface;
 import ca.spottedleaf.starlight.common.light.StarLightLightingProvider;
 import ca.spottedleaf.starlight.common.util.CoordinateUtils;
+import ca.spottedleaf.starlight.common.util.SaveUtil;
 import ca.spottedleaf.starlight.common.util.WorldUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -199,15 +200,7 @@ public class BaseLevelLightEngineVanillaInterface extends LevelLightEngine imple
         }
         if (skyNibbles != null) {
             ((ExtendedChunk)chunk).scalablelux$setSkyNibbles(skyNibbles);
-        }
-        if (((ExtendedChunk)chunk).scalablelux$getBlockEmptinessMap() == null || ((ExtendedChunk)chunk).scalablelux$getSkyEmptinessMap() == null) {
-            // non-boxed copy of StarLightEngine.getEmptySectionsForChunk()
-            final LevelChunkSection[] sections = chunk.getSections();
-            final boolean[] emptySectionsForChunk = new boolean[sections.length];
-            for (int i = 0; i < sections.length; ++i) {
-                emptySectionsForChunk[i] = sections[i] == null || sections[i].hasOnlyAir();
-            }
-            ((ExtendedChunk)chunk).scalablelux$setBlockEmptinessMap(emptySectionsForChunk);
+            SaveUtil.extrudeVanillaSkylightWithQuirk(skyNibbles);
         }
     }
 }
